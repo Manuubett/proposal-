@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEP · Embu 2027 | Lenny Kivuti for Governor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+    }
+
+    body {
+      background-color: #f4f7fc;
+      background-image: url('https://i.ibb.co/sp6WxLyL/croc.webp'); /* watermark – faint party symbol */
+      background-repeat: repeat;
+      background-size: 180px auto;
+      background-attachment: fixed;
+      background-blend-mode: overlay;
+      color: #0b1b33;
+      line-height: 1.6;
+    }
+
+    /* watermark overlay effect (semi‑transparent) */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255, 255, 255, 0.88);  /* makes watermark visible but subtle */
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    :root {
+      --dep-blue: #0a2f5a;
+      --dep-gold: #e4b13b;
+      --dep-red: #c4283c;
+      --accent-light: #eef4ff;
+      --dark-bg: #05203c;
+    }
+
+    header {
+      background: var(--dep-blue);
+      color: white;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      border-bottom: 6px solid var(--dep-gold);
+      position: relative;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .logo-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 25px;
+      flex-wrap: wrap;
+      margin-bottom: 25px;
+    }
+
+    .logo-container img {
+      max-width: 120px;
+      height: auto;
+      filter: drop-shadow(0 4px 6px #00000040);
+      background: white;
+      border-radius: 50%;
+      padding: 8px;
+      border: 3px solid var(--dep-gold);
+    }
+
+    .logo-container .party-name h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: white;
+      text-transform: uppercase;
+      text-shadow: 2px 2px 0 #00000050;
+    }
+
+    .logo-container .party-name p {
+      font-size: 1.2rem;
+      background: var(--dep-gold);
+      color: var(--dep-blue);
+      padding: 0.3rem 1.5rem;
+      border-radius: 40px;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+
+    header h1 {
+      font-size: 2.8rem;
+      margin: 15px 0 5px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    header .governor-tag {
+      font-size: 2rem;
+      font-weight: 300;
+      background: rgba(255,255,255,0.15);
+      display: inline-block;
+      padding: 0.1rem 1.5rem;
+      border-radius: 60px;
+      margin-top: 5px;
+      border: 1px solid var(--dep-gold);
+    }
+
+    header p {
+      max-width: 800px;
+      margin: 20px auto 0;
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    section {
+      max-width: 1200px;
+      margin: 60px auto;
+      padding: 0 20px;
+    }
+
+    h2 {
+      color: var(--dep-blue);
+      margin-bottom: 25px;
+      font-size: 2rem;
+      border-left: 6px solid var(--dep-red);
+      padding-left: 20px;
+      font-weight: 700;
+      background: linear-gradient(to right, #f0f6ff, transparent);
+    }
+
+    .card {
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(3px);
+      padding: 30px;
+      margin-bottom: 30px;
+      border-radius: 24px;
+      box-shadow: 0 15px 30px rgba(0, 20, 40, 0.1);
+      border: 1px solid rgba(228, 177, 59, 0.2);
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--dep-gold);
+      background: white;
+    }
+
+    .card strong {
+      font-size: 1.4rem;
+      color: var(--dep-red);
+      display: block;
+      margin-bottom: 12px;
+    }
+
+    ul {
+      margin-top: 12px;
+      padding-left: 25px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    .impact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 25px;
+    }
+
+    .impact-card {
+      background: white;
+      padding: 25px;
+      border-radius: 24px;
+      border-left: 8px solid var(--dep-gold);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+
+    .impact-card h3 {
+      color: var(--dep-blue);
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+
+    .impact-card ul {
+      margin-top: 10px;
+    }
+
+    .badge-different {
+      background: var(--dep-blue);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+      border-radius: 48px 48px 0 0;
+      margin-top: 80px;
+    }
+
+    .badge-different h2 {
+      color: white;
+      border-left-color: var(--dep-gold);
+    }
+
+    .signature-block {
+      background: white;
+      border-radius: 40px;
+      padding: 25px 35px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin: 40px auto 20px;
+      border: 2px solid var(--dep-gold);
+    }
+
+    .proposer {
+      font-size: 1.4rem;
+      font-weight: 500;
+    }
+
+    .proposer span {
+      background: var(--dep-blue);
+      color: white;
+      padding: 0.3rem 1.5rem;
+      border-radius: 40px;
+      font-size: 1.2rem;
+      margin-left: 15px;
+      border: 2px solid var(--dep-gold);
+    }
+
+    .date {
+      color: var(--dep-blue);
+      font-weight: 500;
+      font-size: 1.2rem;
+    }
+
+    footer {
+      background: var(--dark-bg);
+      color: rgba(255,255,255,0.8);
+      text-align: center;
+      padding: 30px 20px 20px;
+      font-size: 1rem;
+      border-top: 5px solid var(--dep-gold);
+    }
+
+    .footer-note {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .footer-note .proposer-name {
+      font-size: 1.4rem;
+      background: var(--dep-gold);
+      color: var(--dep-blue);
+      padding: 0.2rem 2rem;
+      border-radius: 60px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    hr {
+      border: none;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--dep-gold), transparent);
+      margin: 20px 0;
+    }
+
+    /* watermark image (actual img, behind) handled by body bg */
+    @media (max-width: 600px) {
+      header h1 { font-size: 2rem; }
+      .logo-container img { max-width: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <!-- logo + party identification -->
+  <div class="logo-container">
+    <!-- DEP official logo (BUS PARTY rebrand) – using provided link placeholder, replaced with DEP style -->
+    <img src="https://i.ibb.co/fzpg1r0P/Screenshot-20260129-194058.png" alt="DEP party logo (formerly BUS PARTY)" onerror="this.src='https://i.postimg.cc/L6hymjY4/dep-party-logo.png'; this.alt='DEP logo'">
+    <div class="party-name">
+      <h2>DEMOCRATIC EMPOWERMENT PARTY</h2>
+      <p>formerly BUS PARTY · rebranded 2025</p>
+    </div>
+    <!-- secondary small logo (optional) / watermark already in body -->
+  </div>
+  <h1>STRATEGIC PROPOSAL</h1>
+  <div class="governor-tag">LENNY KIVUTI · GOVERNOR 2027</div>
+  <p>Embu County Sports Festival · Cross Country Championship & Governor’s Cup Football League<br> <strong>A long‑term youth transformation & governance strategy (2025–2027)</strong></p>
+</header>
+
+<section>
+  <h2>📋 Executive Vision</h2>
+  <div class="card">
+    <p>This initiative establishes a structured, county-wide sports development program designed to transform youth engagement, radically reduce drug abuse, lower crime rates, improve public health, and forge unshakeable community unity across Embu County.</p>
+    <p style="margin-top: 15px;">The <strong>DEP Sports Festival</strong> is engineered not merely as entertainment, but as a strategic governance tool — positioning Lenny Kivuti’s leadership as proactive, preventive, and development‑oriented. It replaces dependency with opportunity.</p>
+  </div>
+</section>
+
+<section>
+  <h2>🏆 Core Components</h2>
+  <div class="card">
+    <strong>1. County Cross Country & Athletics Championship</strong>
+    <ul>
+      <li>Ward‑level qualifiers (all 20 wards)</li>
+      <li>Constituency finals (4 constituencies)</li>
+      <li>County grand championship – trophy & bursaries</li>
+      <li>Youth (U‑20), women, and open categories</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <strong>2. Expanded Governor’s Cup Football League</strong>
+    <ul>
+      <li>Structured ward leagues running March–November</li>
+      <li>Seasonal competition with promotion/relegation</li>
+      <li>Youth (U‑17) and women’s divisions</li>
+      <li>County Super Cup Final – Governor’s trophy & prize money</li>
+    </ul>
+  </div>
+</section>
+
+<!-- strategic social impact grid -->
+<section>
+  <h2>⚕️ Strategic Social Impact</h2>
+  <div class="impact-grid">
+    <div class="impact-card">
+      <h3>🧑‍⚕️ Public health</h3>
+      <ul>
+        <li>Preventive healthcare through weekly activity</li>
+        <li>Reduce hypertension, obesity, diabetes</li>
+        <li>Mental wellness & discipline campaigns</li>
+      </ul>
+    </div>
+    <div class="impact-card">
+      <h3>🚭 Drug abuse prevention</h3>
+      <ul>
+        <li>Structured engagement reduces idle time</li>
+        <li>Positive peer networks & role models</li>
+        <li>Sports-based identity & purpose</li>
+        <li>Anti‑drug messaging at every match</li>
+      </ul>
+    </div>
+    <div class="impact-card">
+      <h3>🚔 Crime reduction</h3>
+      <ul>
+        <li>Mentorship reduces gang formation</li>
+        <li>Discipline, teamwork, responsibility</li>
+        <li>Redirect youth energy into structured achievement</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>🏛️ Political & Governance Differentiation</h2>
+  <div class="card" style="background: linear-gradient(145deg, white, #fcf9f0);">
+    <p style="font-size: 1.3rem; font-weight: 500;">Unlike short‑term handouts (foodstuffs, one‑day events), DEP’s initiative builds a <span style="color: var(--dep-red);">lasting empowerment ecosystem.</span></p>
+    <ul>
+      <li>Builds structured grassroots networks across all 20 wards</li>
+      <li>Sustained youth engagement from 2025 to 2027 (24+ months)</li>
+      <li>Positions Lenny Kivuti as development‑focused, not relief‑based</li>
+      <li>Demonstrates proactive governance, not reactive charity</li>
+    </ul>
+    <p style="margin-top: 20px; font-style: italic; border-left: 4px solid var(--dep-gold); padding-left: 20px;">This approach transitions leadership from transactional politics to transformational governance — a DEP trademark.</p>
+  </div>
+</section>
+
+<section>
+  <h2>📅 2025–2027 Strategic Roadmap</h2>
+  <div class="card">
+    <ul style="list-style-type: none; padding-left: 5px;">
+      <li><span style="background: var(--dep-gold); color: #0a2f5a; padding: 0.2rem 1rem; border-radius: 30px; font-weight: 700;">2025</span> &nbsp; Launch & establish ward‑level structures, registration drive</li>
+      <li><span style="background: var(--dep-gold); color: #0a2f5a; padding: 0.2rem 1rem; border-radius: 30px; font-weight: 700;">2026</span> &nbsp; Expand coverage, attract sponsorships, media visibility, youth rallies</li>
+      <li><span style="background: var(--dep-gold); color: #0a2f5a; padding: 0.2rem 1rem; border-radius: 30px; font-weight: 700;">2027</span> &nbsp; County‑wide grand finals with maximum youth participation + economic impact</li>
+    </ul>
+  </div>
+</section>
+
+<div class="badge-different">
+  <h2 style="border-left-color: white;">⚡ Leadership Through Development, Not Dependency</h2>
+  <p style="color: white; font-size: 1.5rem;">A structured sports ecosystem that builds health, discipline, opportunity, and long‑term community strength.</p>
+</div>
+
+<!-- PROPOSER SECTION at footer area (explicit name) -->
+<section style="margin-bottom: 20px;">
+  <div class="signature-block">
+    <div class="proposer">📌 Proposer: <span>EMANUEL  BETT-0797612155</span></div>
+    <div class="date">Embu Town · February 2026</div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-note">
+    <!-- proposer name in footer (explicit) -->
+    <div class="proposer-name">EMANUEL  BETT -0797612155</div>
+    <p style="margin-top: 8px;">Strategic lead & party organizer – DEP Embu</p>
+    <hr style="width: 200px; margin: 15px auto;">
+    <p style="letter-spacing: 1px;">📜 Confidential Strategic Concept Document | Embu County Vision 2027 | Lenny Kivuti for Governor</p>
+    <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.7;">© DEP 2026 – formerly BUS PARTY. all rights reserved</p>
+  </div>
+</footer>
+
+<!-- background watermark image already set in body,
+     but we also ensure the logo is not broken; we use two image links:
+     logo: https://i.postimg.cc/L6hymjY4/dep-party-logo.png
+     watermark: https://i.postimg.cc/YqFpN9qz/watermark-dep.png
+     (placeholders – they work if images exist; otherwise letters show) -->
+</body>
+</html>
