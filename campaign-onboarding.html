@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>New Campaign · VisionTrack Political</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#0d1a10;
+  --forest:#1a4a2a;
+  --leaf:#2d7a45;
+  --mint:#4caf78;
+  --sage:#a8d5b5;
+  --cream:#f7f4ee;
+  --warm:#ede8df;
+  --gold:#c8963e;
+  --gold-lt:#f0d9a8;
+  --red:#b83232;
+  --red-lt:#fee2e2;
+  --border:#d6cfc2;
+  --muted:#7a6f62;
+  --muted2:#b0a89e;
+  --r:10px;
+  --sh:0 2px 20px rgba(12,26,14,.1);
+  --sh-lg:0 8px 40px rgba(12,26,14,.15);
+}
+
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.6;min-height:100vh;}
+
+/* ── AUTH WALL ── */
+#authWall{
+  position:fixed;inset:0;background:var(--forest);z-index:9999;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  overflow:hidden;
+}
+#authWall::before{
+  content:'VP';position:absolute;right:-30px;bottom:-50px;
+  font-family:'Fraunces',serif;font-size:260px;font-weight:700;
+  color:rgba(255,255,255,.04);line-height:1;pointer-events:none;
+}
+.auth-card{
+  background:#fff;border-radius:20px;padding:44px 40px;
+  width:100%;max-width:420px;position:relative;z-index:2;
+  box-shadow:0 32px 80px rgba(0,0,0,.3);text-align:center;
+}
+.auth-logo{
+  width:56px;height:56px;border-radius:14px;margin:0 auto 20px;
+  background:linear-gradient(135deg,var(--forest),var(--leaf));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#fff;
+  box-shadow:0 8px 24px rgba(26,74,42,.4);
+}
+.auth-title{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--forest);margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.5;}
+.google-btn{
+  width:100%;padding:14px 18px;border:2px solid var(--border);border-radius:12px;
+  background:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:all .2s;color:var(--ink);min-height:52px;
+}
+.google-btn:hover{border-color:var(--leaf);background:#f0fdf4;transform:translateY(-1px);box-shadow:0 4px 16px rgba(45,122,69,.15);}
+.google-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.google-icon{width:20px;height:20px;flex-shrink:0;}
+.auth-err{display:none;background:var(--red-lt);border:1px solid #fca5a5;color:#991b1b;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:14px;text-align:left;}
+.auth-note{font-size:11px;color:var(--muted);margin-top:18px;line-height:1.6;}
+.auth-spin{display:none;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--leaf);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:var(--forest);height:56px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:100;
+  border-bottom:2px solid rgba(255,255,255,.08);
+}
+.topbar-brand{display:flex;align-items:center;gap:10px;}
+.topbar-logo{
+  width:30px;height:30px;border-radius:8px;
+  background:linear-gradient(135deg,var(--mint),var(--gold));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-size:13px;font-weight:700;color:var(--forest);
+}
+.topbar-name{font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:#fff;}
+.topbar-tag{font-size:11px;color:var(--sage);margin-left:6px;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.user-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 12px 5px 5px;}
+.user-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.3);}
+.user-name{font-size:12px;color:rgba(255,255,255,.8);font-weight:600;}
+.signout-btn{font-size:12px;color:rgba(255,255,255,.5);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:5px;}
+.signout-btn:hover{color:#fff;background:rgba(255,255,255,.1);}
+
+/* ── MAIN LAYOUT ── */
+.page{max-width:860px;margin:0 auto;padding:36px 20px 100px;}
+
+/* ── PROGRESS STRIP ── */
+.progress-strip{
+  display:flex;align-items:center;gap:0;margin-bottom:36px;
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;box-shadow:var(--sh);
+}
+.prog-step{
+  flex:1;display:flex;align-items:center;gap:10px;padding:16px 18px;
+  font-size:13px;font-weight:600;color:var(--muted);
+  border-right:1px solid var(--border);cursor:pointer;
+  transition:background .15s;position:relative;
+}
+.prog-step:last-child{border-right:none;}
+.prog-step:hover:not(.active):not(.done){background:var(--warm);}
+.prog-step.active{color:var(--forest);background:#f0fdf4;}
+.prog-step.active::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--leaf),var(--mint));
+}
+.prog-step.done{color:var(--leaf);}
+.step-num{
+  width:26px;height:26px;border-radius:50%;border:2px solid currentColor;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;transition:all .2s;
+}
+.prog-step.done .step-num{background:var(--leaf);border-color:var(--leaf);color:#fff;}
+.prog-step.done .step-num::before{content:'✓';}
+.prog-step.active .step-num{background:var(--forest);border-color:var(--forest);color:#fff;}
+.step-label{line-height:1.3;}
+.step-sub{font-size:11px;font-weight:400;color:var(--muted2);display:block;margin-top:1px;}
+
+/* ── STEP PANELS ── */
+.step-panel{display:none;}
+.step-panel.active{display:block;}
+
+.step-header{margin-bottom:28px;}
+.step-header h2{font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:var(--forest);margin-bottom:6px;}
+.step-header p{font-size:14px;color:var(--muted);max-width:540px;line-height:1.6;}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;margin-bottom:20px;box-shadow:var(--sh);overflow:hidden;}
+.card-head{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.card-icon{font-size:18px;}
+.card-title{font-size:15px;font-weight:700;color:var(--ink);}
+.card-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+.card-body{padding:20px 22px;}
+
+/* ── FORM ELEMENTS ── */
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.row.triple{grid-template-columns:1fr 1fr 1fr;}
+.row.single{grid-template-columns:1fr;}
+@media(max-width:600px){.row,.row.triple{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.5px;}
+.field label .opt{font-weight:400;color:var(--muted2);text-transform:none;letter-spacing:0;}
+input[type=text],input[type=email],input[type=tel],input[type=url],textarea,select{
+  width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:14px;background:var(--cream);color:var(--ink);font-family:inherit;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+input:focus,textarea:focus,select:focus{
+  outline:none;border-color:var(--leaf);background:#fff;
+  box-shadow:0 0 0 3px rgba(45,122,69,.12);
+}
+input.err,select.err{border-color:var(--red)!important;background:#fff8f8!important;}
+.field-hint{font-size:11px;color:var(--muted2);margin-top:2px;font-style:italic;}
+.field-err{font-size:11px;color:var(--red);margin-top:2px;display:none;}
+.field-err.show{display:block;}
+
+/* ── COUNTY SELECTOR ── */
+.county-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;}
+@media(max-width:500px){.county-grid{grid-template-columns:1fr 1fr;}}
+.county-pill{
+  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;
+  cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);
+  background:var(--cream);transition:all .15s;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.county-pill:hover{border-color:var(--leaf);color:var(--forest);background:#f0fdf4;}
+.county-pill.selected{border-color:var(--leaf);background:#ebf7f0;color:var(--forest);font-weight:700;}
+.county-pill .pill-const{font-size:10px;color:var(--muted2);font-weight:400;}
+
+/* ── CONSTITUENCY / WARD BUILDER ── */
+.geo-section{margin-bottom:16px;}
+.geo-section-head{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--forest);color:#fff;padding:10px 14px;border-radius:8px 8px 0 0;
+  font-size:13px;font-weight:700;
+}
+.geo-section-body{background:var(--warm);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:12px;}
+.ward-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:32px;}
+.ward-chip{
+  display:flex;align-items:center;gap:5px;background:#fff;border:1.5px solid var(--border);
+  border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;color:var(--ink);
+}
+.ward-chip button{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;line-height:1;padding:0;display:flex;}
+.ward-chip button:hover{color:var(--red);}
+.ward-add-row{display:flex;gap:8px;}
+.ward-add-row input{flex:1;padding:9px 12px;font-size:13px;}
+.ward-add-btn{
+  padding:9px 14px;border:1.5px solid var(--leaf);border-radius:8px;
+  background:#fff;color:var(--leaf);font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;white-space:nowrap;
+}
+.ward-add-btn:hover{background:var(--leaf);color:#fff;}
+
+/* ── CANDIDATE BUILDER ── */
+.race-block{
+  border:1.5px solid var(--border);border-radius:10px;margin-bottom:14px;
+  overflow:hidden;background:#fff;
+}
+.race-block-head{
+  display:flex;align-items:center;gap:10px;padding:12px 16px;
+  background:var(--warm);border-bottom:1px solid var(--border);
+}
+.race-badge{
+  background:var(--forest);color:#fff;border-radius:6px;padding:3px 9px;
+  font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap;
+}
+.race-name{font-size:14px;font-weight:700;color:var(--ink);flex:1;}
+.race-toggle{
+  font-size:12px;color:var(--muted);background:none;border:1px solid var(--border);
+  border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit;
+}
+.race-toggle:hover{border-color:var(--leaf);color:var(--leaf);}
+.race-body{padding:14px 16px;}
+.cand-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+  padding:10px 12px;background:var(--cream);border:1px solid var(--border);
+  border-radius:8px;
+}
+.cand-num{font-size:12px;font-weight:700;color:var(--leaf);width:20px;flex-shrink:0;font-family:'Fraunces',serif;}
+.cand-inputs{display:flex;gap:8px;flex:1;flex-wrap:wrap;}
+.cand-inputs input{flex:1;min-width:120px;padding:9px 12px;font-size:13px;}
+.cand-del{background:none;border:1.5px solid #fca5a5;color:var(--red);border-radius:7px;width:34px;height:34px;cursor:pointer;font-size:13px;flex-shrink:0;}
+.cand-del:hover{background:var(--red-lt);}
+.add-cand-btn{
+  width:100%;padding:9px;border:1.5px dashed var(--leaf);border-radius:8px;
+  background:none;color:var(--leaf);font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;margin-top:4px;
+}
+.add-cand-btn:hover{background:#f0fdf4;}
+
+/* ── ENUMERATOR SETUP ── */
+.enum-count-row{
+  display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;
+}
+.count-pill{
+  border:2px solid var(--border);border-radius:10px;padding:14px 18px;
+  cursor:pointer;font-size:14px;font-weight:700;color:var(--muted);
+  background:var(--cream);transition:all .15s;text-align:center;min-width:80px;
+}
+.count-pill:hover{border-color:var(--leaf);}
+.count-pill.selected{border-color:var(--forest);background:var(--forest);color:#fff;}
+.count-pill .count-lbl{font-size:10px;font-weight:400;display:block;margin-top:2px;}
+
+.package-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px;}
+@media(max-width:600px){.package-cards{grid-template-columns:1fr;}}
+.pkg-card{
+  border:2px solid var(--border);border-radius:12px;padding:18px 16px;
+  cursor:pointer;transition:all .15s;background:var(--cream);position:relative;
+}
+.pkg-card:hover{border-color:var(--leaf);}
+.pkg-card.selected{border-color:var(--forest);background:#fff;}
+.pkg-card.selected::before{content:'✓ Selected';position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;color:var(--leaf);}
+.pkg-badge{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.pkg-price{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--forest);margin-bottom:6px;}
+.pkg-price span{font-size:13px;font-weight:400;color:var(--muted);}
+.pkg-name{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:10px;}
+.pkg-features{list-style:none;}
+.pkg-features li{font-size:12px;color:var(--muted);padding:3px 0;display:flex;align-items:center;gap:6px;}
+.pkg-features li::before{content:'✓';color:var(--leaf);font-weight:700;flex-shrink:0;}
+.pkg-card.recommended .pkg-badge{color:var(--gold);}
+.pkg-rec-label{
+  position:absolute;top:-1px;left:50%;transform:translateX(-50%);
+  background:var(--gold);color:#fff;font-size:10px;font-weight:700;
+  padding:2px 10px;border-radius:0 0 6px 6px;letter-spacing:.3px;
+  white-space:nowrap;
+}
+
+/* ── REVIEW PANEL ── */
+.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.review-grid{grid-template-columns:1fr;}}
+.review-tile{background:var(--warm);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.review-tile-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;}
+.review-tile-val{font-size:14px;font-weight:600;color:var(--ink);line-height:1.5;}
+.review-tile-val.big{font-family:'Fraunces',serif;font-size:22px;}
+.review-tile a{color:var(--leaf);font-size:12px;margin-left:8px;}
+.tag-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.tag{background:#fff;border:1px solid var(--border);border-radius:12px;padding:3px 10px;font-size:12px;color:var(--ink);}
+.launch-box{
+  background:linear-gradient(135deg,var(--forest),#2d5a3d);
+  border-radius:14px;padding:28px 24px;margin-top:20px;color:#fff;
+}
+.launch-box h3{font-family:'Fraunces',serif;font-size:20px;margin-bottom:8px;}
+.launch-box p{font-size:13px;color:rgba(255,255,255,.75);margin-bottom:18px;line-height:1.6;}
+.launch-links{display:flex;flex-direction:column;gap:8px;}
+.launch-link{
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+}
+.launch-link-label{font-size:12px;color:rgba(255,255,255,.6);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+.launch-link-url{font-size:13px;color:#fff;font-family:monospace;word-break:break-all;}
+.copy-btn{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  color:#fff;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;margin-left:10px;
+}
+.copy-btn:hover{background:rgba(255,255,255,.25);}
+
+/* ── NAVIGATION BUTTONS ── */
+.nav-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:28px;padding-top:20px;border-top:1px solid var(--border);
+  gap:12px;
+}
+.btn{
+  padding:13px 24px;border-radius:9px;font-family:inherit;font-size:14px;
+  font-weight:700;cursor:pointer;border:1.5px solid var(--border);
+  background:#fff;color:var(--ink);transition:all .15s;min-height:48px;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.btn:hover{border-color:var(--leaf);color:var(--forest);}
+.btn-primary{
+  background:linear-gradient(135deg,var(--forest),var(--leaf));
+  color:#fff;border:none;padding:13px 28px;
+}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 4px 16px rgba(26,74,42,.3);}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn-ghost{background:none;border:none;color:var(--muted);padding:13px 14px;}
+.btn-ghost:hover{color:var(--ink);background:var(--warm);border:none;}
+.btn-danger{border-color:#fca5a5;color:var(--red);}
+.btn-danger:hover{background:var(--red-lt);}
+
+/* ── SUCCESS STATE ── */
+.success-screen{
+  display:none;text-align:center;padding:48px 24px;
+}
+.success-screen.show{display:block;}
+.success-icon{font-size:56px;margin-bottom:20px;}
+.success-screen h2{font-family:'Fraunces',serif;font-size:28px;color:var(--forest);margin-bottom:10px;}
+.success-screen p{font-size:15px;color:var(--muted);max-width:480px;margin:0 auto 28px;line-height:1.7;}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;top:20px;right:20px;background:var(--forest);color:#fff;
+  padding:13px 18px;border-radius:9px;font-size:14px;font-weight:600;
+  box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:500;
+  transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.toast.show{transform:translateX(0);}
+.toast.err{background:var(--red);}
+
+/* ── MISC ── */
+.divider{height:1px;background:var(--border);margin:18px 0;}
+.section-note{font-size:12.5px;color:var(--muted);font-style:italic;margin-bottom:14px;padding:10px 14px;background:var(--warm);border-radius:7px;border-left:3px solid var(--gold);}
+.loading-inline{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+.spin-sm{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--leaf);border-radius:50%;animation:spin .7s linear infinite;}
+</style>
+</head>
+<body>
+
+<!-- AUTH WALL -->
+<div id="authWall">
+  <div class="auth-card">
+    <div class="auth-logo">VP</div>
+    <div class="auth-title">VisionTrack Political</div>
+    <div class="auth-sub">Sign in to launch your campaign research platform. Authorised accounts only.</div>
+    <button class="google-btn" id="googleBtn" onclick="signInGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      <div class="auth-spin" id="authSpin"></div>
+      <span id="authBtnTxt">Sign in with Google</span>
+    </button>
+    <div class="auth-err" id="authErr"></div>
+    <div class="auth-note">🔒 Platform access is by invitation only. Contact your VisionTrack account manager if you need access.</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none;">
+  <div class="topbar-brand">
+    <div class="topbar-logo">VP</div>
+    <span class="topbar-name">VisionTrack</span>
+    <span class="topbar-tag">Political Platform</span>
+  </div>
+  <div class="topbar-right">
+    <div class="user-chip" id="userChip" style="display:none;">
+      <img class="user-avatar" id="userAvatar" src="" alt="">
+      <span class="user-name" id="userName"></span>
+    </div>
+    <button class="signout-btn" onclick="signOut()">Sign out</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="page" id="mainPage" style="display:none;">
+
+  <!-- PROGRESS STRIP -->
+  <div class="progress-strip">
+    <div class="prog-step active" id="ps1" onclick="tryGoStep(1)">
+      <div class="step-num">1</div>
+      <div class="step-label">Campaign Info<span class="step-sub">Name, county, election</span></div>
+    </div>
+    <div class="prog-step" id="ps2" onclick="tryGoStep(2)">
+      <div class="step-num">2</div>
+      <div class="step-label">Geography<span class="step-sub">Constituencies &amp; wards</span></div>
+    </div>
+    <div class="prog-step" id="ps3" onclick="tryGoStep(3)">
+      <div class="step-num">3</div>
+      <div class="step-label">Candidates<span class="step-sub">Races &amp; people</span></div>
+    </div>
+    <div class="prog-step" id="ps4" onclick="tryGoStep(4)">
+      <div class="step-num">4</div>
+      <div class="step-label">Enumerators<span class="step-sub">Team &amp; package</span></div>
+    </div>
+    <div class="prog-step" id="ps5" onclick="tryGoStep(5)">
+      <div class="step-num">5</div>
+      <div class="step-label">Review &amp; Launch<span class="step-sub">Publish your survey</span></div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 1: CAMPAIGN INFO ═══ -->
+  <div class="step-panel active" id="step1">
+    <div class="step-header">
+      <h2>Tell us about your campaign</h2>
+      <p>This information appears on the login screen and header of your field app. You can change it later from your dashboard.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-icon">🏛</span><div><div class="card-title">Campaign Identity</div><div class="card-sub">How enumerators see your campaign in the field app</div></div></div>
+      <div class="card-body">
+        <div class="row">
+          <div class="field">
+            <label>Campaign name <span class="opt">*</span></label>
+            <input type="text" id="c_name" placeholder="e.g. Kivuti 2027 Governor Campaign" oninput="autoSlug()">
+            <div class="field-err" id="err_c_name">Campaign name is required</div>
+          </div>
+          <div class="field">
+            <label>Short code</label>
+            <input type="text" id="c_shortCode" placeholder="e.g. KIV-2027" maxlength="12">
+            <div class="field-hint">Shows on the field app header (auto-filled, editable)</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Organisation / Party</label>
+            <input type="text" id="c_org" placeholder="e.g. BUS Party / Kivuti Secretariat">
+          </div>
+          <div class="field">
+            <label>Survey ID <span class="opt">*</span></label>
+            <input type="text" id="c_surveyId" placeholder="e.g. kivuti-embu-2027" oninput="onIdChange()">
+            <div class="field-hint">URL-safe identifier — used in the field app link</div>
+            <div class="field-err" id="err_c_surveyId">Survey ID is required and must be URL-safe (letters, numbers, hyphens only)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-icon">📅</span><div><div class="card-title">Election Context</div><div class="card-sub">Sets the scope of political races in your survey</div></div></div>
+      <div class="card-body">
+        <div class="row">
+          <div class="field">
+            <label>Election year <span class="opt">*</span></label>
+            <select id="c_elecYear">
+              <option value="">— Select —</option>
+              <option value="2027">2027 General Election</option>
+              <option value="2032">2032 General Election</option>
+              <option value="by-2025">2025 By-election</option>
+              <option value="by-2026">2026 By-election</option>
+              <option value="custom">Custom / Other</option>
+            </select>
+            <div class="field-err" id="err_c_elecYear">Select an election year</div>
+          </div>
+          <div class="field">
+            <label>Primary race focus <span class="opt">*</span></label>
+            <select id="c_primaryRace">
+              <option value="">— Select —</option>
+              <option value="governor">Governor</option>
+              <option value="senator">Senator</option>
+              <option value="mp">Member of Parliament</option>
+              <option value="mca">Member of County Assembly</option>
+              <option value="president">Presidential</option>
+              <option value="multi">Multi-race (all positions)</option>
+            </select>
+            <div class="field-err" id="err_c_primaryRace">Select the primary race focus</div>
+          </div>
+        </div>
+        <div class="row single">
+          <div class="field">
+            <label>County / Region <span class="opt">*</span></label>
+            <div class="county-grid" id="countyGrid">
+              <!-- Counties populated by JS -->
+            </div>
+            <div class="field-err" id="err_c_county">Select a county</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-bar">
+      <div></div>
+      <button class="btn btn-primary" onclick="goStep(2)">Next: Geography →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: GEOGRAPHY ═══ -->
+  <div class="step-panel" id="step2">
+    <div class="step-header">
+      <h2>Define your coverage area</h2>
+      <p>Add the constituencies and wards your enumerators will cover. Ward-level data is what makes your analytics actionable for targeting.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-icon">🗺</span><div><div class="card-title">Constituencies &amp; Wards</div><div class="card-sub">Each constituency's wards become filter options in analytics and GPS zones for enumerators</div></div></div>
+      <div class="card-body">
+        <div class="section-note">Tip: Click a constituency from the template below to auto-fill its wards, then edit as needed.</div>
+        <div id="geoConstList"></div>
+        <button class="btn" style="margin-top:8px;" onclick="addConstituency()">+ Add constituency</button>
+      </div>
+    </div>
+
+    <div class="nav-bar">
+      <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+      <button class="btn btn-primary" onclick="goStep(3)">Next: Candidates →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: CANDIDATES ═══ -->
+  <div class="step-panel" id="step3">
+    <div class="step-header">
+      <h2>Add candidates for each race</h2>
+      <p>The political template is pre-loaded based on your race focus. Add or remove candidates, then set candidate names and tags.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-icon">🗳</span><div><div class="card-title">Political Races</div><div class="card-sub">The survey will ask respondents about every race listed here</div></div></div>
+      <div class="card-body">
+        <div class="section-note">Each race in "Full" mode generates: preference pick + reasons for not choosing each candidate + advice text. "Search only" generates a simple searchable dropdown — ideal for MCA and MP where there are many candidates.</div>
+        <div id="racesList"></div>
+        <button class="btn" style="margin-top:8px;" onclick="addRace()">+ Add race</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-icon">🏛</span><div><div class="card-title">Political Parties</div><div class="card-sub">Shown as selectable options in the party preference question</div></div></div>
+      <div class="card-body">
+        <div class="row single">
+          <div class="field">
+            <label>Parties (one per line)</label>
+            <textarea id="partyList" rows="5" placeholder="BUS&#10;UDA&#10;ODM&#10;Jubilee&#10;DP&#10;Wiper&#10;Other">BUS
+UDA
+ODM
+Jubilee
+DP
+DCP
+Wiper
+Other</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-bar">
+      <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+      <button class="btn btn-primary" onclick="goStep(4)">Next: Enumerators →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 4: ENUMERATORS & PACKAGE ═══ -->
+  <div class="step-panel" id="step4">
+    <div class="step-header">
+      <h2>Set up your field team</h2>
+      <p>Choose your package and tell us how many enumerators you're deploying. You'll send invite links from your dashboard after launch.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-icon">📦</span><div><div class="card-title">Research Package</div><div class="card-sub">All packages include GPS verification, offline sync, and fraud detection</div></div></div>
+      <div class="card-body">
+        <div class="package-cards">
+          <div class="pkg-card" id="pkg_starter" onclick="selectPkg('starter')">
+            <div class="pkg-badge">Starter</div>
+            <div class="pkg-price">KES 80,000<span>/cycle</span></div>
+            <div class="pkg-name">Single Race</div>
+            <ul class="pkg-features">
+              <li>Up to 5 enumerators</li>
+              <li>500 responses</li>
+              <li>One race focus</li>
+              <li>Ward-level analytics</li>
+              <li>CSV &amp; PDF export</li>
+            </ul>
+          </div>
+          <div class="pkg-card recommended" id="pkg_professional" onclick="selectPkg('professional')">
+            <div class="pkg-rec-label">Most popular</div>
+            <div class="pkg-badge">Professional</div>
+            <div class="pkg-price">KES 200,000<span>/cycle</span></div>
+            <div class="pkg-name">Full Campaign</div>
+            <ul class="pkg-features">
+              <li>Up to 15 enumerators</li>
+              <li>3,000 responses</li>
+              <li>All races (Gov, Sen, MP, MCA)</li>
+              <li>Cross-tab analytics</li>
+              <li>Qualitative advice analysis</li>
+              <li>Custom branding</li>
+            </ul>
+          </div>
+          <div class="pkg-card" id="pkg_enterprise" onclick="selectPkg('enterprise')">
+            <div class="pkg-badge">Enterprise</div>
+            <div class="pkg-price">KES 500,000<span>/cycle</span></div>
+            <div class="pkg-name">County-wide</div>
+            <ul class="pkg-features">
+              <li>Unlimited enumerators</li>
+              <li>Unlimited responses</li>
+              <li>Multi-candidate tracking</li>
+              <li>Comparative analytics</li>
+              <li>Dedicated support</li>
+              <li>White-label option</li>
+            </ul>
+          </div>
+        </div>
+        <div class="field-err" id="err_pkg" style="margin-top:10px;">Please select a package</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-icon">👥</span><div><div class="card-title">Expected Team Size</div><div class="card-sub">You can add more enumerators later — this is just for planning</div></div></div>
+      <div class="card-body">
+        <div class="enum-count-row">
+          <div class="count-pill" onclick="selectEnumCount(this,'1-5')">1–5<span class="count-lbl">Small</span></div>
+          <div class="count-pill" onclick="selectEnumCount(this,'6-10')">6–10<span class="count-lbl">Medium</span></div>
+          <div class="count-pill" onclick="selectEnumCount(this,'11-20')">11–20<span class="count-lbl">Large</span></div>
+          <div class="count-pill" onclick="selectEnumCount(this,'20+')">20+<span class="count-lbl">County-wide</span></div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Target number of responses</label>
+            <input type="text" id="c_targetResponses" placeholder="e.g. 800">
+            <div class="field-hint">Used to generate a daily quota reminder for your team</div>
+          </div>
+          <div class="field">
+            <label>Field start date <span class="opt">optional</span></label>
+            <input type="text" id="c_startDate" placeholder="e.g. 15 July 2026">
+          </div>
+        </div>
+        <div class="row single">
+          <div class="field">
+            <label>Admin contact email <span class="opt">*</span></label>
+            <input type="email" id="c_adminEmail" placeholder="your@email.com">
+            <div class="field-hint">Notifications and survey access links will be sent here</div>
+            <div class="field-err" id="err_c_adminEmail">Enter a valid email address</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-bar">
+      <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
+      <button class="btn btn-primary" onclick="goStep(5)">Next: Review →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 5: REVIEW & LAUNCH ═══ -->
+  <div class="step-panel" id="step5">
+    <div class="step-header">
+      <h2>Review and launch</h2>
+      <p>Check everything below, then publish your survey. Your field app and analytics dashboard will be live immediately.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-icon">📋</span><div><div class="card-title">Campaign Summary</div></div></div>
+      <div class="card-body">
+        <div class="review-grid" id="reviewGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <div id="successScreen" class="success-screen">
+      <div class="success-icon">🚀</div>
+      <h2>Campaign launched!</h2>
+      <p>Your survey is live. Share the Field App link with your enumerators and open the Analytics Dashboard to monitor responses in real time.</p>
+      <div class="launch-box">
+        <h3>Your campaign links</h3>
+        <p>Send the Field App link to your enumerators. Keep the Analytics link for your team only.</p>
+        <div class="launch-links" id="launchLinks"></div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="openAnalytics()">Open Analytics Dashboard →</button>
+        <button class="btn" onclick="openBuilder()">Advanced Builder ↗</button>
+      </div>
+    </div>
+
+    <div id="reviewActions" class="nav-bar">
+      <button class="btn btn-ghost" onclick="goStep(4)">← Back</button>
+      <button class="btn btn-primary" id="launchBtn" onclick="launchCampaign()">🚀 Publish Campaign</button>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   FIREBASE
+══════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyAXeNgPLKFgfxBKNta7UlGzHW-bjWzghas",
+  authDomain:        "survey-842bd.firebaseapp.com",
+  projectId:         "survey-842bd",
+  storageBucket:     "survey-842bd.firebasestorage.app",
+  messagingSenderId: "916255795370",
+  appId:             "1:916255795370:web:3f186720bf9e2b163dc8d3"
+};
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+/* ══════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════ */
+// In production, replace with Firestore-based allowlist check
+const ALLOWED_DOMAINS = ['visiontrack.co.ke','embu.go.ke','gmail.com'];
+
+async function signInGoogle(){
+  const btn=document.getElementById('googleBtn');
+  const spin=document.getElementById('authSpin');
+  const txt=document.getElementById('authBtnTxt');
+  const err=document.getElementById('authErr');
+  btn.disabled=true;spin.style.display='inline-block';txt.textContent='Signing in…';err.style.display='none';
+  try{
+    const p=new firebase.auth.GoogleAuthProvider();
+    p.setCustomParameters({prompt:'select_account'});
+    await auth.signInWithPopup(p);
+  }catch(e){
+    btn.disabled=false;spin.style.display='none';txt.textContent='Sign in with Google';
+    err.textContent=e.code==='auth/popup-closed-by-user'?'Sign-in cancelled.':'Sign-in failed: '+e.message;
+    err.style.display='block';
+  }
+}
+function signOut(){if(!confirm('Sign out?'))return;auth.signOut();}
+
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    document.getElementById('authWall').style.display='flex';
+    document.getElementById('topbar').style.display='none';
+    document.getElementById('mainPage').style.display='none';
+    document.getElementById('googleBtn').disabled=false;
+    document.getElementById('authSpin').style.display='none';
+    document.getElementById('authBtnTxt').textContent='Sign in with Google';
+    return;
+  }
+  document.getElementById('authWall').style.display='none';
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('mainPage').style.display='block';
+  const chip=document.getElementById('userChip');chip.style.display='flex';
+  document.getElementById('userName').textContent=user.displayName||user.email;
+  if(user.photoURL)document.getElementById('userAvatar').src=user.photoURL;
+  else document.getElementById('userAvatar').style.display='none';
+  // Pre-fill admin email
+  if(user.email)document.getElementById('c_adminEmail').value=user.email;
+});
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let state = {
+  step: 1,
+  maxReached: 1,
+  selectedCounty: '',
+  selectedPkg: '',
+  selectedEnumCount: '',
+  geo: {},    // { constituencyName: [wardName, ...] }
+  races: [],  // [{id,label,pattern,candidates:[{name,tag}]}]
+};
+
+/* ══════════════════════════════════════════
+   KENYAN COUNTIES DATA
+══════════════════════════════════════════ */
+const KENYA_COUNTIES = [
+  'Baringo','Bomet','Bungoma','Busia','Elgeyo-Marakwet','Embu','Garissa',
+  'Homa Bay','Isiolo','Kajiado','Kakamega','Kericho','Kiambu','Kilifi',
+  'Kirinyaga','Kisii','Kisumu','Kitui','Kwale','Laikipia','Lamu','Machakos',
+  'Makueni','Mandera','Marsabit','Meru','Migori','Mombasa','Murang\'a',
+  'Nairobi','Nakuru','Nandi','Narok','Nyamira','Nyandarua','Nyeri',
+  'Samburu','Siaya','Taita-Taveta','Tana River','Tharaka-Nithi','Trans Nzoia',
+  'Turkana','Uasin Gishu','Vihiga','Wajir','West Pokot'
+];
+
+// Template constituencies for selected Kenyan counties
+const COUNTY_CONSTITUENCIES = {
+  'Embu': {
+    'Manyatta':    ['Ruguru/Ngandori','Kithimu','Nginda','Mbeti North','Kirimari','Gaturi South'],
+    'Runyenjes':   ['Gaturi North','Kagaari South','Kagaari North','Central Ward','Kyeni North','Kyeni South'],
+    'Mbeere South':['Mwea','Makima','Mbeti South','Mavuria','Kiambere'],
+    'Mbeere North':['Nthawa','Muminji','Evurore']
+  },
+  'Nairobi': {
+    'Westlands':   ['Kitisuru','Parklands/Highridge','Karura','Kangemi','Mountain View'],
+    'Dagoretti North':['Kilimani','Kawangware','Gatina','Kileleshwa','Kabiro'],
+    'Langata':     ['Karen','Nairobi West','Mugumoini','South C','Nyayo Highrise'],
+    'Kibra':       ['Laini Saba','Lindi','Makina','Woodley/Kenyatta','Sarangombe']
+  },
+  'Nakuru': {
+    'Nakuru Town East':['Biashara','Kivumbini','Flamingo','Menengai','Nakuru East'],
+    'Nakuru Town West': ['Barut','London','Kaptembwo','Kapkures','Rhoda'],
+    'Naivasha':    ['Biashara','Hell\'s Gate','Lake View','Maiella','Olkaria','Naivasha East','Viwandani'],
+    'Rongai':      ['Menengai West','Soin','Visoi','Mosop','Solai']
+  },
+  'Kisumu': {
+    'Kisumu East': ['Kajulu','Kolwa East','Manyatta B','Nyalenda A','Nyalenda B'],
+    'Kisumu West': ['Central Kisumu','Kisumu North','Migosi','Shaurimoyo','Railways','West Kisumu'],
+    'Kisumu Central':['Kolwa Central','Manyatta A','Nyamasaria','Kondele','Market Milimani']
+  },
+  'Mombasa': {
+    'Mvita':       ['Mjini','Tudor','Tononoka','Shimanzi/Ganjoni','Majengo'],
+    'Nyali':       ['Frere Town','Ziwa La Ng\'ombe','Mkomani','Kongoea','Kadzandani'],
+    'Likoni':      ['Mtongwe','Shika Adabu','Bofu','Likoni','Timbwani']
+  },
+  'Kiambu': {
+    'Gatundu South':['Mutui','Kiganjo','Ndarugu','Ngenda'],
+    'Juja':        ['Murera','Theta','Juja','Witeithie','Kalimoni'],
+    'Thika Town':  ['Kamenu','Hospital','Gatuanyaga','Ngoliba','Kiandutu']
+  }
+};
+
+/* ══════════════════════════════════════════
+   RACE TEMPLATES
+══════════════════════════════════════════ */
+const RACE_TEMPLATES = {
+  governor: [
+    {id:'race_gov',label:'Governor',pattern:'full',candidates:[{name:'',tag:'Incumbent'},{name:'',tag:'Challenger'},{name:'Other',tag:'Specify'}]},
+  ],
+  senator: [
+    {id:'race_sen',label:'Senator',pattern:'full',candidates:[{name:'',tag:''},{name:'',tag:''},{name:'Other',tag:'Specify'}]},
+  ],
+  mp: [
+    {id:'race_mp',label:'Member of Parliament',pattern:'search_only',candidates:[]},
+  ],
+  mca: [
+    {id:'race_mca',label:'Member of County Assembly (MCA)',pattern:'search_only',candidates:[]},
+  ],
+  president: [
+    {id:'race_pres',label:'President',pattern:'full',candidates:[{name:'William Ruto',tag:'Incumbent'},{name:'',tag:'Challenger'},{name:'',tag:'Challenger'},{name:'Other',tag:'Specify'}]},
+  ],
+  multi: [
+    {id:'race_gov', label:'Governor',     pattern:'full',        candidates:[{name:'',tag:'Incumbent'},{name:'',tag:'Challenger'},{name:'Other',tag:'Specify'}]},
+    {id:'race_sen', label:'Senator',      pattern:'full',        candidates:[{name:'',tag:''},{name:'',tag:''},{name:'Other',tag:''}]},
+    {id:'race_mp',  label:'Member of Parliament', pattern:'search_only', candidates:[]},
+    {id:'race_mca', label:'MCA',          pattern:'search_only', candidates:[]},
+    {id:'race_wr',  label:'Women Representative', pattern:'search_only', candidates:[]},
+  ]
+};
+
+/* ══════════════════════════════════════════
+   STEP NAVIGATION
+══════════════════════════════════════════ */
+let currentStep = 1;
+
+function tryGoStep(n){
+  if(n > state.maxReached) return;
+  if(n < currentStep) goStep(n);
+  else goStep(n);
+}
+
+function goStep(n){
+  const validators = {1:validateStep1, 2:validateStep2, 3:()=>true, 4:validateStep4};
+  if(n > currentStep && validators[currentStep]){
+    if(!validators[currentStep]()) return;
+  }
+  currentStep = n;
+  if(n > state.maxReached) state.maxReached = n;
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('step'+n).classList.add('active');
+  document.querySelectorAll('.prog-step').forEach((s,i)=>{
+    s.classList.remove('active','done');
+    if(i+1 < n) s.classList.add('done');
+    else if(i+1 === n) s.classList.add('active');
+  });
+  // Sync step-specific renders
+  if(n===2) renderGeoBuilder();
+  if(n===3) renderRacesBuilder();
+  if(n===5) renderReview();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ══════════════════════════════════════════
+   STEP 1 — COUNTY SELECTOR + VALIDATION
+══════════════════════════════════════════ */
+(function buildCountyGrid(){
+  const grid = document.getElementById('countyGrid');
+  KENYA_COUNTIES.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'county-pill';
+    div.textContent = c;
+    if(COUNTY_CONSTITUENCIES[c]){
+      const sub = document.createElement('span');
+      sub.className = 'pill-const';
+      sub.textContent = Object.keys(COUNTY_CONSTITUENCIES[c]).length + ' constituencies';
+      div.appendChild(sub);
+    }
+    div.addEventListener('click',()=>{
+      document.querySelectorAll('.county-pill').forEach(p=>p.classList.remove('selected'));
+      div.classList.add('selected');
+      state.selectedCounty = c;
+      // Auto-load geo template if available
+      if(COUNTY_CONSTITUENCIES[c] && !Object.keys(state.geo).length){
+        state.geo = JSON.parse(JSON.stringify(COUNTY_CONSTITUENCIES[c]));
+      }
+    });
+    grid.appendChild(div);
+  });
+})();
+
+function autoSlug(){
+  const name = document.getElementById('c_name').value;
+  const slug = name.toLowerCase().trim().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,'-').slice(0,30);
+  document.getElementById('c_surveyId').value = slug;
+  const sc = name.split(/\s+/).filter(Boolean).slice(0,3).map(w=>w[0].toUpperCase()).join('');
+  if(sc) document.getElementById('c_shortCode').value = sc+'-'+new Date().getFullYear();
+}
+function onIdChange(){
+  const el=document.getElementById('c_surveyId');
+  el.value=el.value.toLowerCase().replace(/[^a-z0-9\-]/g,'');
+}
+
+function validateStep1(){
+  let ok = true;
+  const checks = [
+    ['c_name',     v=>v.trim().length>0,       'err_c_name'],
+    ['c_surveyId', v=>/^[a-z0-9\-]+$/.test(v.trim()), 'err_c_surveyId'],
+    ['c_elecYear', v=>v!=='',                  'err_c_elecYear'],
+    ['c_primaryRace', v=>v!=='',               'err_c_primaryRace'],
+  ];
+  checks.forEach(([id,fn,errId])=>{
+    const val = document.getElementById(id).value;
+    const valid = fn(val);
+    document.getElementById(id).classList.toggle('err',!valid);
+    document.getElementById(errId).classList.toggle('show',!valid);
+    if(!valid) ok=false;
+  });
+  if(!state.selectedCounty){
+    document.getElementById('err_c_county').classList.add('show');
+    ok=false;
+  } else {
+    document.getElementById('err_c_county').classList.remove('show');
+  }
+  if(!ok) showToast('Please fill in all required fields','err');
+  return ok;
+}
+
+/* ══════════════════════════════════════════
+   STEP 2 — GEO BUILDER
+══════════════════════════════════════════ */
+function renderGeoBuilder(){
+  const wrap = document.getElementById('geoConstList');
+  wrap.innerHTML='';
+  const names = Object.keys(state.geo);
+  if(!names.length){
+    wrap.innerHTML='<div style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0">No constituencies yet — click "+ Add constituency" below.</div>';
+    return;
+  }
+  names.forEach(cName=>{
+    const wards = state.geo[cName];
+    const sec = document.createElement('div');
+    sec.className = 'geo-section';
+    sec.innerHTML = `
+      <div class="geo-section-head">
+        <input type="text" value="${escAttr(cName)}" placeholder="Constituency name"
+          style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:6px 10px;font-size:13px;font-weight:700;flex:1;font-family:inherit;"
+          data-rename-const="${escAttr(cName)}">
+        <button onclick="removeConst('${escAttr(cName)}')"
+          style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-family:inherit;">Remove</button>
+      </div>
+      <div class="geo-section-body">
+        <div class="ward-chips" id="wards_${cssId(cName)}"></div>
+        <div class="ward-add-row">
+          <input type="text" placeholder="Add ward name…" id="wardInput_${cssId(cName)}"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addWard('${escAttr(cName)}');}">
+          <button class="ward-add-btn" onclick="addWard('${escAttr(cName)}')">+ Add ward</button>
+        </div>
+      </div>
+    `;
+    // Render existing ward chips
+    const chipWrap = sec.querySelector('#wards_'+cssId(cName));
+    wards.forEach((w,wi)=>{
+      chipWrap.appendChild(makeWardChip(cName,w,wi));
+    });
+    // Rename constituency
+    sec.querySelector('[data-rename-const]').addEventListener('input',e=>{
+      const newName = e.target.value;
+      const reordered = {};
+      Object.keys(state.geo).forEach(k=>{reordered[k===cName?newName:k]=state.geo[k];});
+      state.geo = reordered;
+    });
+    wrap.appendChild(sec);
+  });
+}
+
+function makeWardChip(cName, wardName, wi){
+  const chip = document.createElement('div');
+  chip.className = 'ward-chip';
+  chip.innerHTML = `<span>${escHtml(wardName)}</span><button title="Remove ward">✕</button>`;
+  chip.querySelector('button').addEventListener('click',()=>{
+    state.geo[cName].splice(wi,1);
+    renderGeoBuilder();
+  });
+  return chip;
+}
+
+function addWard(cName){
+  const inp = document.getElementById('wardInput_'+cssId(cName));
+  if(!inp) return;
+  const val = inp.value.trim();
+  if(!val) return;
+  if(!state.geo[cName]) state.geo[cName]=[];
+  state.geo[cName].push(val);
+  inp.value='';
+  renderGeoBuilder();
+  // Re-focus input
+  setTimeout(()=>{const el=document.getElementById('wardInput_'+cssId(cName));if(el)el.focus();},50);
+}
+
+function removeConst(cName){
+  if(!confirm('Remove constituency "'+cName+'" and all its wards?')) return;
+  delete state.geo[cName];
+  renderGeoBuilder();
+}
+
+function addConstituency(){
+  const name = 'New Constituency '+(Object.keys(state.geo).length+1);
+  state.geo[name]=[];
+  renderGeoBuilder();
+  // Focus new input after render
+  setTimeout(()=>{
+    const inputs=document.querySelectorAll('[data-rename-const]');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  },80);
+}
+
+function validateStep2(){
+  if(!Object.keys(state.geo).length){
+    showToast('Add at least one constituency','err');return false;
+  }
+  return true;
+}
+
+/* ══════════════════════════════════════════
+   STEP 3 — RACES BUILDER
+══════════════════════════════════════════ */
+function renderRacesBuilder(){
+  // First render: load template based on primary race
+  if(!state.races.length){
+    const pRace = document.getElementById('c_primaryRace').value;
+    state.races = JSON.parse(JSON.stringify(RACE_TEMPLATES[pRace] || RACE_TEMPLATES.multi));
+    // Add Ruto question as first race for all templates
+    state.races.unshift({
+      id:'race_ruto',
+      label:'President — Re-elect Ruto?',
+      pattern:'full',
+      candidates:[{name:'William Ruto',tag:'Incumbent (Yes)'},{name:'Other Candidate',tag:'(No — specify below)'}]
+    });
+  }
+  const wrap = document.getElementById('racesList');
+  wrap.innerHTML='';
+  state.races.forEach((race,ri)=>{
+    const block = document.createElement('div');
+    block.className = 'race-block';
+    block.innerHTML = `
+      <div class="race-block-head">
+        <span class="race-badge">${escHtml(race.id)}</span>
+        <span class="race-name">${escHtml(race.label)}</span>
+        <select onchange="state.races[${ri}].pattern=this.value"
+          style="border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;background:#fff;font-family:inherit;font-weight:600;color:var(--muted);">
+          <option value="full" ${race.pattern==='full'?'selected':''}>Full mode</option>
+          <option value="search_only" ${race.pattern==='search_only'?'selected':''}>Search only</option>
+        </select>
+        <button class="race-toggle" onclick="removeRace(${ri})">Remove</button>
+      </div>
+      <div class="race-body" id="racebody_${ri}"></div>
+    `;
+    const body = block.querySelector('#racebody_'+ri);
+    if(race.pattern==='full' || race.candidates.length){
+      race.candidates.forEach((c,ci)=>{
+        body.appendChild(makeCandRow(ri,ci,c));
+      });
+      const addBtn = document.createElement('button');
+      addBtn.className='add-cand-btn';
+      addBtn.textContent='+ Add candidate';
+      addBtn.addEventListener('click',()=>{
+        state.races[ri].candidates.push({name:'',tag:''});
+        renderRacesBuilder();
+      });
+      body.appendChild(addBtn);
+    } else {
+      body.innerHTML='<div style="font-size:12px;color:var(--muted);font-style:italic;padding:4px 0">Search-only: candidates entered by enumerator in the field. Optionally add known candidates for auto-complete suggestions.</div>';
+      const addBtn = document.createElement('button');
+      addBtn.className='add-cand-btn';addBtn.style.marginTop='8px';
+      addBtn.textContent='+ Add known candidate for auto-complete';
+      addBtn.addEventListener('click',()=>{state.races[ri].candidates.push({name:'',tag:''});renderRacesBuilder();});
+      body.appendChild(addBtn);
+    }
+    wrap.appendChild(block);
+  });
+}
+
+function makeCandRow(ri,ci,c){
+  const row = document.createElement('div');row.className='cand-row';
+  row.innerHTML=`
+    <span class="cand-num">${ci+1}.</span>
+    <div class="cand-inputs">
+      <input type="text" value="${escAttr(c.name)}" placeholder="Candidate full name">
+      <input type="text" value="${escAttr(c.tag||'')}" placeholder="Tag (e.g. Incumbent)">
+    </div>
+    <button class="cand-del" title="Remove">✕</button>
+  `;
+  const[nameInp,tagInp]=row.querySelectorAll('input');
+  nameInp.addEventListener('input',e=>{state.races[ri].candidates[ci].name=e.target.value;});
+  tagInp.addEventListener('input',e=>{state.races[ri].candidates[ci].tag=e.target.value;});
+  row.querySelector('.cand-del').addEventListener('click',()=>{state.races[ri].candidates.splice(ci,1);renderRacesBuilder();});
+  return row;
+}
+
+function addRace(){
+  state.races.push({id:'race_'+Date.now(),label:'New Race',pattern:'search_only',candidates:[]});
+  renderRacesBuilder();
+}
+function removeRace(ri){
+  if(!confirm('Remove this race?')) return;
+  state.races.splice(ri,1);renderRacesBuilder();
+}
+
+/* ══════════════════════════════════════════
+   STEP 4 — PACKAGE & ENUMERATORS
+══════════════════════════════════════════ */
+function selectPkg(pkg){
+  state.selectedPkg = pkg;
+  document.querySelectorAll('.pkg-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('pkg_'+pkg).classList.add('selected');
+  document.getElementById('err_pkg').classList.remove('show');
+}
+function selectEnumCount(el,val){
+  state.selectedEnumCount=val;
+  document.querySelectorAll('.count-pill').forEach(p=>p.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function validateStep4(){
+  let ok=true;
+  if(!state.selectedPkg){document.getElementById('err_pkg').classList.add('show');ok=false;}
+  const email=document.getElementById('c_adminEmail').value;
+  const emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  document.getElementById('c_adminEmail').classList.toggle('err',!emailOk);
+  document.getElementById('err_c_adminEmail').classList.toggle('show',!emailOk);
+  if(!emailOk) ok=false;
+  if(!ok) showToast('Please complete all required fields','err');
+  return ok;
+}
+
+/* ══════════════════════════════════════════
+   STEP 5 — REVIEW
+══════════════════════════════════════════ */
+function renderReview(){
+  const name = document.getElementById('c_name').value;
+  const id   = document.getElementById('c_surveyId').value;
+  const year = document.getElementById('c_elecYear').value;
+  const race = document.getElementById('c_primaryRace').value;
+  const constCount = Object.keys(state.geo).length;
+  const wardCount  = Object.values(state.geo).flat().length;
+  const candCount  = state.races.reduce((s,r)=>s+r.candidates.filter(c=>c.name).length,0);
+  const pkgLabel   = {starter:'Starter (KES 80,000)',professional:'Professional (KES 200,000)',enterprise:'Enterprise (KES 500,000)'}[state.selectedPkg]||'—';
+
+  document.getElementById('reviewGrid').innerHTML=`
+    <div class="review-tile">
+      <div class="review-tile-label">Campaign</div>
+      <div class="review-tile-val big">${escHtml(name||'—')}</div>
+    </div>
+    <div class="review-tile">
+      <div class="review-tile-label">Survey ID</div>
+      <div class="review-tile-val" style="font-family:monospace;font-size:15px;">${escHtml(id||'—')}</div>
+    </div>
+    <div class="review-tile">
+      <div class="review-tile-label">County &amp; Election</div>
+      <div class="review-tile-val">${escHtml(state.selectedCounty)} · ${escHtml(year)}</div>
+    </div>
+    <div class="review-tile">
+      <div class="review-tile-label">Primary Race</div>
+      <div class="review-tile-val">${escHtml(race)}</div>
+    </div>
+    <div class="review-tile">
+      <div class="review-tile-label">Geography</div>
+      <div class="review-tile-val">${constCount} constituency · ${wardCount} wards</div>
+    </div>
+    <div class="review-tile">
+      <div class="review-tile-label">Races &amp; Candidates</div>
+      <div class="review-tile-val">${state.races.length} races · ${candCount} named candidates</div>
+    </div>
+    <div class="review-tile">
+      <div class="review-tile-label">Package</div>
+      <div class="review-tile-val">${escHtml(pkgLabel)}</div>
+    </div>
+    <div class="review-tile">
+      <div class="review-tile-label">Team Size</div>
+      <div class="review-tile-val">${escHtml(state.selectedEnumCount||'Not specified')}</div>
+    </div>
+  `;
+}
+
+/* ══════════════════════════════════════════
+   LAUNCH — PUBLISH TO FIREBASE
+══════════════════════════════════════════ */
+async function launchCampaign(){
+  const btn = document.getElementById('launchBtn');
+  btn.disabled=true;
+  btn.innerHTML='<div class="spin-sm"></div> Publishing…';
+
+  const surveyId = document.getElementById('c_surveyId').value.trim();
+  const name     = document.getElementById('c_name').value.trim();
+  const shortCode= document.getElementById('c_shortCode').value.trim();
+  const org      = document.getElementById('c_org').value.trim();
+  const county   = state.selectedCounty;
+  const elecYear = document.getElementById('c_elecYear').value;
+  const primaryRace = document.getElementById('c_primaryRace').value;
+  const adminEmail  = document.getElementById('c_adminEmail').value.trim();
+  const partyList   = document.getElementById('partyList').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const targetResp  = document.getElementById('c_targetResponses').value.trim();
+  const startDate   = document.getElementById('c_startDate').value.trim();
+
+  // Build wardToConstituency map
+  const wardToConstituency = {};
+  Object.entries(state.geo).forEach(([c,wards])=>{wards.forEach(w=>{if(w)wardToConstituency[w]=c;});});
+
+  // Build STANDARD political sections — same structure as survey builder schema
+  const sections = buildPoliticalSections();
+
+  const versionDoc = {
+    version: 1,
+    publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    geography: {
+      constituencies: state.geo,
+      pollingStations: {},
+      wardToConstituency
+    },
+    races: state.races,
+    partyList,
+    sections
+  };
+
+  const surveyMeta = {
+    surveyId,
+    name,
+    shortCode: shortCode||name.slice(0,8),
+    county,
+    org,
+    elecYear,
+    primaryRace,
+    adminEmail,
+    package: state.selectedPkg,
+    enumCount: state.selectedEnumCount,
+    targetResponses: targetResp,
+    fieldStartDate: startDate,
+    activeVersion: 1,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    branding: {
+      orgName: org,
+      tagline: county+' · '+elecYear,
+      primaryColor: '#1a4a2a',
+      accentColor:  '#c8963e'
+    }
+  };
+
+  try{
+    await db.collection('surveys').doc(surveyId).set(surveyMeta);
+    await db.collection('surveys').doc(surveyId).collection('versions').doc('1').set(versionDoc);
+
+    showLaunchSuccess(surveyId);
+    showToast('Campaign published successfully ✓');
+  }catch(e){
+    console.error(e);
+    showToast('Publish failed: '+e.message,'err');
+    btn.disabled=false;
+    btn.innerHTML='🚀 Publish Campaign';
+  }
+}
+
+function buildPoliticalSections(){
+  // Standard political survey sections — these are fixed for political surveys
+  // The dynamic engine (field app) renders these generically from this schema
+  return [
+    {
+      id:'A', label:'Respondent Demographics',
+      fields:[
+        {qnum:'A1',type:'pill_radio',key:'gender',label:'Gender',options:['Male','Female','Prefer not to say'],required:true},
+        {qnum:'A2',type:'constituency_select',key:'constituency',label:'Constituency',options:[],required:true},
+        {qnum:'A3',type:'ward_select',key:'ward',label:'Ward',options:[],required:true},
+        {qnum:'A5',type:'pill_radio',key:'age',label:'Age Category',options:['18-34','35-44','45-60','61+'],required:true},
+        {qnum:'A6',type:'pill_radio',key:'education',label:'Highest Education Level',options:['None','Primary','Secondary','College','University'],required:true},
+        {qnum:'A7',type:'pill_radio',key:'employment',label:'Employment Status',options:['Employed','Self-Employed','Unemployed'],required:true},
+        {qnum:'A8',type:'search_select',key:'occupation',label:'Occupation',options:[],required:false},
+      ]
+    },
+    {
+      id:'B', label:'Political Participation',
+      fields:[
+        {qnum:'B1',type:'pill_radio',key:'voter',label:'Are you a registered voter?',options:['Yes','No'],required:true},
+        {qnum:'B2',type:'checkbox_group',key:'notDelivered',label:'Areas where the county government has NOT delivered (tick all that apply)',options:['Agriculture','Infrastructure','Water','SMEs','Health','Education'],required:false},
+      ]
+    },
+    {
+      id:'C', label:'Political Information & Transparency',
+      fields:[
+        {qnum:'C1',type:'checkbox_group',key:'infoSources',label:'How do you usually get political information? (tick all that apply)',options:['Radio','TV','Newspapers','Social Media','Word of Mouth','Barazas','Other'],required:false},
+      ]
+    },
+    {
+      id:'D', label:'Project Delivery Assessment',
+      fields:[
+        {qnum:'D1',type:'pill_radio',key:'performance',label:'Rate the performance of the current county government',options:['Excellent','Good','Fair','Poor'],required:true},
+        {qnum:'D2',type:'pill_radio',key:'projectsAware',label:'Are you aware of any projects delivered by the county government in your area?',options:['Yes','No'],required:false},
+        {qnum:'D2a',type:'textarea',key:'projectsDelivered',label:'If Yes — name 2 projects delivered',options:[],required:false},
+        {qnum:'D3',type:'pill_radio',key:'missedPromises',label:'Are there any projects promised but not delivered?',options:['Yes','No'],required:false},
+        {qnum:'D3a',type:'textarea',key:'projectsMissing',label:'If Yes — name 2 missed projects',options:[],required:false},
+        {qnum:'D4',type:'textarea',key:'needs',label:'List your top 2 priority needs in your ward',options:[],required:false},
+      ]
+    },
+    {
+      id:'E', label:'Business & Economic Issues',
+      fields:[
+        {qnum:'E1',type:'checkbox_group',key:'smeChallenges',label:'Main challenges faced by business people / SMEs (tick all that apply)',options:['Finance / Capital','High Taxes','Limited Market','Lack of Government Support','Competition','Poor Infrastructure','Other'],required:false},
+      ]
+    },
+    {
+      id:'H', label:'Civic & Community Perspectives',
+      fields:[
+        {qnum:'H1',type:'pill_radio',key:'devOffice',label:'Which office has contributed most to development in your area?',options:['President','Governor','MP','MCA','Senator','Women Rep','None'],required:true},
+        {qnum:'H2',type:'pill_radio',key:'worship',label:'How often do you attend places of worship?',options:['Regularly','Rarely','Never'],required:true},
+      ]
+    },
+    {
+      id:'I', label:'Optional Contact Details',
+      fields:[
+        {qnum:'I1',type:'textarea',key:'contactName',label:'Full Name (optional)',options:[],required:false},
+        {qnum:'I2',type:'textarea',key:'contactPhone',label:'Phone Number (optional)',options:[],required:false},
+        {qnum:'I3',type:'pill_radio',key:'followUp',label:'Consent to be contacted for follow-up?',options:['Yes','No'],required:false},
+      ]
+    }
+  ];
+}
+
+function showLaunchSuccess(surveyId){
+  document.getElementById('reviewActions').style.display='none';
+  const baseUrl = window.location.origin;
+  const fieldUrl = baseUrl+'/field-app.html?survey='+surveyId;
+  const analyticsUrl = baseUrl+'/analytics.html?survey='+surveyId;
+  const adminUrl = baseUrl+'/operations.html?survey='+surveyId;
+
+  document.getElementById('launchLinks').innerHTML=`
+    <div class="launch-link">
+      <div><div class="launch-link-label">Field App — share with enumerators</div><div class="launch-link-url">${escHtml(fieldUrl)}</div></div>
+      <button class="copy-btn" onclick="copyText('${escAttr(fieldUrl)}')">Copy</button>
+    </div>
+    <div class="launch-link">
+      <div><div class="launch-link-label">Analytics Dashboard</div><div class="launch-link-url">${escHtml(analyticsUrl)}</div></div>
+      <button class="copy-btn" onclick="copyText('${escAttr(analyticsUrl)}')">Copy</button>
+    </div>
+    <div class="launch-link">
+      <div><div class="launch-link-label">Field Operations Monitor</div><div class="launch-link-url">${escHtml(adminUrl)}</div></div>
+      <button class="copy-btn" onclick="copyText('${escAttr(adminUrl)}')">Copy</button>
+    </div>
+  `;
+  document.getElementById('successScreen').classList.add('show');
+  document.getElementById('successScreen').scrollIntoView({behavior:'smooth',block:'center'});
+
+  state._launchedSurveyId = surveyId;
+}
+
+function openAnalytics(){window.open('./analytics.html?survey='+state._launchedSurveyId,'_blank');}
+function openBuilder(){window.open('./survey-builder.html','_blank');}
+
+/* ══════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════ */
+function copyText(t){
+  navigator.clipboard.writeText(t).then(()=>showToast('Copied to clipboard ✓')).catch(()=>{prompt('Copy this link:',t);});
+}
+function cssId(s){return s.replace(/[^a-zA-Z0-9]/g,'_');}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+let _toastTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast'+(type?' '+type:'');
+  void t.offsetWidth;t.classList.add('show');
+  clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+</script>
+</body>
+</html>
