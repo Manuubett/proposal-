@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Field Survey · VisionTrack Political</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#0c1a0e;--forest:#1a4a2a;--leaf:#2d7a45;--mint:#4caf78;--sage:#a8d5b5;
+  --cream:#f7f4ee;--warm:#ede8df;--gold:#c8963e;--gold-lt:#f0d9a8;
+  --red:#b83232;--sky:#2563a8;--border:#d6cfc2;--muted:#7a6f62;--r:10px;
+  --sh:0 2px 16px rgba(12,26,14,.09);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);line-height:1.6;font-size:16px;min-height:100vh;-webkit-text-size-adjust:100%;}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;}
+.screen.show{display:flex;flex-direction:column;}
+#loadScreen{align-items:center;justify-content:center;background:var(--forest);padding:32px;}
+#loginScreen{align-items:center;justify-content:center;background:var(--forest);padding:24px;position:relative;overflow:hidden;}
+#loginScreen::before{content:'VP';position:absolute;right:-30px;bottom:-50px;font-family:'Fraunces',serif;font-size:240px;font-weight:700;color:rgba(255,255,255,.04);pointer-events:none;}
+#surveyScreen{background:var(--cream);}
+
+/* ── LOAD SCREEN ── */
+.load-logo{width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--mint),var(--gold));display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--forest);margin:0 auto 20px;box-shadow:0 8px 32px rgba(0,0,0,.3);}
+.load-title{font-family:'Fraunces',serif;font-size:22px;color:#fff;text-align:center;margin-bottom:8px;}
+.load-msg{font-size:13px;color:var(--sage);text-align:center;margin-bottom:24px;}
+.load-spin{width:36px;height:36px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--mint);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;}
+.load-err{background:rgba(184,50,50,.15);border:1px solid rgba(184,50,50,.4);color:#fca5a5;border-radius:10px;padding:16px 20px;max-width:380px;text-align:center;font-size:14px;line-height:1.6;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fieldShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-6px)}30%{transform:translateX(6px)}45%{transform:translateX(-4px)}60%{transform:translateX(4px)}75%{transform:translateX(-2px)}90%{transform:translateX(2px)}}
+.field-shake{animation:fieldShake .45s ease;}
+
+/* ── LOGIN CARD ── */
+.login-card{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,.3);text-align:center;position:relative;z-index:2;}
+.login-logo{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--forest),var(--leaf));display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#fff;box-shadow:0 8px 24px rgba(26,74,42,.4);}
+.login-title{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--forest);margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:6px;}
+.login-survey-name{font-size:14px;font-weight:700;color:var(--forest);margin-bottom:22px;background:var(--warm);border-radius:8px;padding:8px 14px;}
+.invite-banner{border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;text-align:left;border:1.5px solid;display:flex;align-items:flex-start;gap:10px;}
+.invite-banner .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.ib-ok{background:#f0fdf4;border-color:#86efac;color:#166534;}
+.ib-warn{background:#fffbeb;border-color:#fcd34d;color:#78350f;}
+.ib-err{background:#fee2e2;border-color:#fca5a5;color:#991b1b;}
+.ib-load{background:var(--warm);border-color:var(--border);color:var(--muted);}
+.ib-title{font-weight:700;margin-bottom:2px;}
+.ib-body{font-size:12px;opacity:.85;line-height:1.5;}
+.google-btn{width:100%;padding:14px 18px;border:2px solid var(--border);border-radius:12px;background:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;color:var(--ink);min-height:52px;}
+.google-btn:hover{border-color:var(--leaf);background:#f0fdf4;transform:translateY(-1px);box-shadow:0 4px 16px rgba(45,122,69,.15);}
+.google-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.google-icon{width:20px;height:20px;}
+.login-err{display:none;background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;}
+.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;font-size:12px;color:var(--muted);}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.login-spin{display:none;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--leaf);border-radius:50%;animation:spin .7s linear infinite;}
+
+/* ── RESEARCHER MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(8,20,10,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);}
+.overlay.hidden{display:none;}
+.mbox{background:#fff;border-radius:18px;width:100%;max-width:500px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.25);animation:mIn .22s ease;}
+@keyframes mIn{from{transform:scale(.93);opacity:0}to{transform:scale(1);opacity:1}}
+.mhead{padding:20px 24px;flex-shrink:0;border-bottom:1px solid var(--border);background:var(--forest);color:#fff;}
+.mhead h2{font-family:'Fraunces',serif;font-size:18px;margin-bottom:2px;}
+.mhead p{font-size:12px;opacity:.7;font-style:italic;}
+.mscroll{overflow-y:auto;padding:20px 24px;flex:1;}
+.mfoot{padding:14px 24px;border-top:1px solid var(--border);background:var(--warm);flex-shrink:0;}
+.btn-row{display:flex;gap:10px;justify-content:flex-end;}
+.mbtn{padding:11px 22px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--muted);font-size:14px;cursor:pointer;font-weight:700;font-family:inherit;min-height:46px;}
+.mbtn.primary{background:linear-gradient(135deg,var(--forest),var(--leaf));color:#fff;border:none;}
+.mbtn.primary:not(:disabled):hover{opacity:.88;}
+.mbtn:disabled{opacity:.35;cursor:not-allowed;}
+.user-chip{display:flex;align-items:center;gap:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;margin-bottom:18px;}
+.user-chip img{width:38px;height:38px;border-radius:50%;object-fit:cover;}
+.uc-name{font-weight:700;color:var(--forest);font-size:14px;}
+.uc-email{color:var(--muted);font-size:12px;}
+.id-box{background:var(--warm);border:2px solid var(--leaf);border-radius:12px;padding:16px 20px;text-align:center;margin:14px 0;}
+.id-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600;margin-bottom:6px;}
+.id-value{font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:var(--forest);letter-spacing:2px;}
+.id-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* ── GPS MODAL ── */
+.gps-steps{list-style:none;margin:12px 0;}
+.gps-step{display:flex;align-items:flex-start;gap:12px;padding:11px 13px;border-radius:8px;margin-bottom:8px;font-size:13px;background:var(--warm);border:1px solid var(--border);}
+.gps-step.done{background:#f0fdf4;border-color:#bbf7d0;}
+.gps-step.active{background:#fffbeb;border-color:var(--gold-lt);}
+.gps-step.fail{background:#fff1f2;border-color:#fecdd3;}
+.gps-step.skipped{background:#f0fdf4;border-color:#bbf7d0;opacity:.6;}
+.step-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.step-text strong{display:block;font-size:13px;font-weight:600;margin-bottom:1px;}
+.step-text span{font-size:12px;color:var(--muted);}
+.gps-prog{height:7px;background:var(--border);border-radius:5px;overflow:hidden;margin:12px 0 0;}
+.gps-prog-bar{height:100%;background:linear-gradient(90deg,var(--leaf),var(--mint));border-radius:5px;transition:width .4s;}
+.gps-prog-bar.pulsing{background:repeating-linear-gradient(90deg,var(--leaf) 0px,var(--mint) 20px,var(--leaf) 40px);background-size:80px 100%;animation:barScroll 1.2s linear infinite;}
+@keyframes barScroll{from{background-position:0 0}to{background-position:80px 0}}
+.live-gps{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-top:12px;font-size:12px;}
+.live-gps strong{color:var(--forest);display:block;margin-bottom:4px;font-size:13px;}
+.gps-coords{font-family:monospace;font-size:11px;color:#166634;margin:2px 0;}
+.acc-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;margin-top:5px;}
+.acc-good{background:#dcfce7;color:#166534;}
+.acc-ok{background:#fef3c7;color:#92400e;}
+.acc-poor{background:#fee2e2;color:#991b1b;}
+.gps-phase{background:var(--forest);color:#fff;border-radius:7px;padding:9px 13px;margin-top:10px;font-size:12px;font-weight:600;text-align:center;}
+.gps-wait{background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;padding:10px 13px;margin-top:10px;font-size:12px;color:#1e40af;}
+
+/* ── OFFLINE / DRAFT BARS ── */
+#draftBar{display:none;position:sticky;top:0;z-index:200;background:#fffbeb;border-bottom:2px solid var(--gold-lt);padding:10px 16px;}
+.draft-inner{max-width:800px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;}
+.draft-btn{font-size:12px;font-weight:700;padding:7px 14px;border-radius:18px;cursor:pointer;border:1.5px solid;font-family:inherit;min-height:42px;}
+.draft-btn.restore{background:var(--sky);color:#fff;border-color:var(--sky);}
+.draft-btn.discard{background:#fff;color:var(--red);border-color:#fca5a5;}
+#netBadge{display:none;position:fixed;bottom:20px;right:20px;z-index:999;padding:10px 16px;border-radius:28px;font-size:13px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.2);pointer-events:none;align-items:center;gap:6px;}
+#netBadge.offline{background:var(--red);color:#fff;display:flex;}
+#netBadge.online{background:var(--leaf);color:#fff;display:flex;}
+#autosave{position:fixed;bottom:68px;right:20px;z-index:998;font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--border);border-radius:18px;padding:5px 13px;box-shadow:var(--sh);display:none;transition:opacity .4s;}
+#pendBanner{display:none;background:#fffbeb;border:1.5px solid var(--gold-lt);border-left:5px solid var(--gold);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px;color:#78350f;}
+.sync-btn{display:inline-block;margin-top:6px;background:var(--gold);color:#fff;border:none;border-radius:18px;padding:7px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* ── SURVEY HEADER ── */
+.site-header{background:var(--forest);color:#fff;padding:0;position:relative;overflow:hidden;}
+.header-stripe{height:4px;background:linear-gradient(90deg,var(--gold) 0%,var(--mint) 50%,var(--gold) 100%);}
+.header-inner{padding:24px 20px 20px;position:relative;z-index:2;}
+.header-bg{position:absolute;right:-10px;top:-10px;font-family:'Fraunces',serif;font-size:120px;font-weight:700;color:rgba(255,255,255,.04);line-height:1;user-select:none;z-index:1;}
+.header-eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--sage);margin-bottom:6px;}
+.header-title{font-family:'Fraunces',serif;font-size:clamp(20px,5vw,28px);font-weight:700;color:#fff;margin-bottom:3px;}
+.header-sub{font-size:12px;color:var(--sage);}
+.gps-bar{background:#fff;border-bottom:1px solid var(--border);padding:8px 20px;display:none;}
+.gps-bar-inner{max-width:800px;margin:0 auto;display:flex;align-items:center;gap:9px;font-size:13px;}
+.gps-dot{width:9px;height:9px;border-radius:50%;background:#bbb;flex-shrink:0;transition:background .3s;}
+.gps-dot.acquiring{background:var(--gold);animation:pulse 1.2s infinite;}
+.gps-dot.good{background:var(--leaf);}
+.gps-dot.poor{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── RES BANNER ── */
+#resBanner{background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid var(--leaf);border-radius:var(--r);padding:12px 16px;margin-bottom:18px;display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;color:#166534;}
+.sub-counter{display:inline-flex;align-items:center;gap:5px;background:rgba(45,122,69,.12);border:1px solid rgba(45,122,69,.3);color:var(--leaf);border-radius:18px;padding:4px 12px;font-size:12px;font-weight:700;}
+.sub-num{font-family:'Fraunces',serif;font-size:15px;color:var(--forest);}
+
+/* ── SURVEY FORM ── */
+.container{max-width:800px;margin:0 auto;padding:20px 12px 100px;}
+.card{background:#fff;border-radius:14px;box-shadow:var(--sh);margin-bottom:22px;border:1px solid var(--border);}
+.card-head{padding:14px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.card-head.th-forest{background:var(--forest);}
+.card-head.th-leaf{background:var(--leaf);}
+.card-head.th-gold{background:var(--gold);}
+.card-head.th-sky{background:var(--sky);}
+.card-head.th-ink{background:var(--ink);}
+.sec-badge{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:15px;color:#fff;flex-shrink:0;}
+.sec-label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.9);font-weight:600;}
+.sec-label span{font-size:11px;opacity:.7;display:block;font-weight:400;text-transform:none;}
+.card-body{padding:18px 16px;}
+.field{margin-bottom:20px;}
+.field:last-child{margin-bottom:0;}
+.field-label{display:block;font-weight:600;font-size:14px;color:var(--ink);margin-bottom:9px;line-height:1.4;}
+.qnum{color:var(--leaf);margin-right:4px;font-family:'Fraunces',serif;}
+.fnote{font-size:11px;color:var(--muted);font-style:italic;margin-left:4px;font-weight:400;}
+select,input[type=text],textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;background:var(--cream);color:var(--ink);font-family:inherit;transition:border-color .2s,box-shadow .2s;}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 3px rgba(45,122,69,.12);}
+textarea{min-height:76px;resize:vertical;}
+.pill-row,.pilbox{display:flex;flex-wrap:wrap;gap:9px;margin-top:4px;}
+.pill,.pilbox-item{position:relative;}
+.pill input,.pilbox-item input{position:absolute;opacity:0;width:0;height:0;}
+.pill label,.pilbox-item label{display:inline-flex;align-items:center;padding:9px 16px;min-height:42px;border:1.5px solid var(--border);border-radius:22px;font-size:14px;cursor:pointer;color:var(--muted);background:#fafaf8;transition:all .14s;user-select:none;}
+.pill input:checked+label{background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:600;}
+.pill input[type=checkbox]:checked+label{background:var(--forest);border-color:var(--forest);}
+.pilbox-item input:checked+label{background:var(--forest);color:#fff;border-color:var(--forest);font-weight:600;}
+.req-missing label.field-label{color:var(--red)!important;}
+.req-missing label.field-label::after{content:' — required';font-size:11px;font-weight:400;color:var(--red);font-style:italic;}
+.req-missing .pill label,.req-missing .pilbox-item label{border-color:#fca5a5!important;background:#fff1f2!important;}
+
+/* ── RACE BLOCKS ── */
+.race-card{border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;background:#fafaf8;}
+.race-card h3{font-family:'Fraunces',serif;font-size:15px;color:var(--forest);margin-bottom:12px;}
+.gov-row{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:6px;}
+@media(min-width:460px){.gov-row{grid-template-columns:repeat(4,1fr);}}
+.gov-card{border:2px solid var(--border);border-radius:9px;padding:11px 8px;cursor:pointer;text-align:center;background:#fff;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .14s;}
+.gov-card:hover{border-color:var(--mint);}
+.gov-card.selected{border-color:var(--leaf);background:#ebf7f0;}
+.gov-card input{display:none;}
+.gc-name{font-weight:700;font-size:12px;color:var(--forest);}
+.gc-tag{font-size:10px;color:var(--muted);margin-top:3px;}
+.disabled-note{background:var(--warm);padding:9px 13px;border-radius:7px;color:var(--muted);font-size:12px;margin-top:7px;border:1px solid var(--border);display:none;}
+.cond-field{display:none;margin-top:10px;}
+.cond-field.vis{display:block;}
+
+/* ── GPS LOCATION BOX ── */
+.loc-box{background:var(--warm);border:1.5px solid var(--border);border-radius:9px;padding:12px 14px;margin-top:14px;font-size:13px;display:none;}
+.loc-head{font-weight:700;color:var(--forest);margin-bottom:6px;}
+.loc-row{display:flex;flex-wrap:wrap;gap:5px 14px;font-size:12px;color:var(--muted);}
+.loc-val{font-weight:600;color:var(--ink);}
+.loc-acc.good{color:var(--leaf);}
+.loc-acc.ok{color:var(--gold);}
+.loc-acc.poor{color:var(--red);}
+
+/* ── SUBMIT ── */
+#submitBtn{width:100%;padding:16px;background:linear-gradient(135deg,var(--forest),var(--leaf));color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Fraunces',serif;min-height:54px;transition:opacity .2s;}
+#submitBtn:disabled{opacity:.4;cursor:not-allowed;}
+#submitBtn:not(:disabled):hover{opacity:.88;}
+.status-msg{text-align:center;margin-top:12px;font-size:14px;font-weight:600;padding:12px 16px;border-radius:8px;display:flex;align-items:flex-start;gap:9px;}
+.status-msg.success{color:#166534;background:#dcfce7;border:1px solid #86efac;}
+.status-msg.error{color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;}
+.status-msg.warning{color:#92400e;background:#fef3c7;border:1px solid #fcd34d;}
+.status-msg.offline{color:#1e40af;background:#dbeafe;border:1px solid #93c5fd;}
+
+/* ── OFFLINE MODAL ── */
+.q-list{max-height:200px;overflow-y:auto;margin:10px 0;}
+.q-item{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border-radius:7px;margin-bottom:7px;background:var(--gold-lt);border:1px solid var(--gold);font-size:13px;}
+.qi-del{font-size:18px;cursor:pointer;color:var(--red);padding:0 4px;border:none;background:none;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center;}
+.sync-prog-wrap{margin:10px 0;display:none;}
+.sync-prog-outer{height:5px;background:var(--border);border-radius:5px;overflow:hidden;}
+.sync-prog-inner{height:100%;background:linear-gradient(90deg,var(--leaf),var(--mint));border-radius:5px;transition:width .4s;width:0;}
+.sync-stat{font-size:12px;color:var(--muted);margin-top:5px;text-align:center;}
+</style>
+</head>
+<body>
+
+<!-- LOAD SCREEN -->
+<div id="loadScreen" class="screen show">
+  <div class="load-logo">VP</div>
+  <div class="load-title">VisionTrack Political</div>
+  <div class="load-msg" id="loadMsg">Loading survey configuration…</div>
+  <div class="load-spin" id="loadSpin"></div>
+  <div class="load-err" id="loadErr" style="display:none;"></div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="screen">
+  <div class="login-card">
+    <div class="login-logo">VP</div>
+    <div class="login-title" id="loginTitle">Field Survey</div>
+    <div class="login-sub">Researcher Portal</div>
+    <div class="login-survey-name" id="loginSurveyName">Loading…</div>
+    <div class="invite-banner ib-load" id="inviteBanner">
+      <span class="ib-icon">⏳</span>
+      <div><div class="ib-title">Checking invite link…</div></div>
+    </div>
+    <div id="loginAuthWrap" style="display:none;">
+      <button class="google-btn" id="googleBtn" onclick="signInGoogle()">
+        <svg class="google-icon" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        <div class="login-spin" id="loginSpin"></div>
+        <span id="loginBtnTxt">Sign in with Google</span>
+      </button>
+      <div class="login-divider">or</div>
+      <div id="emailAuthSection">
+        <div style="display:flex;gap:0;margin-bottom:12px;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;">
+          <button type="button" id="tabLogin" onclick="switchEmailTab('login')" style="flex:1;padding:11px;border:none;background:var(--forest);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">Sign In</button>
+          <button type="button" id="tabSignup" onclick="switchEmailTab('signup')" style="flex:1;padding:11px;border:none;background:#fff;color:var(--muted);font-weight:600;font-family:inherit;font-size:13px;cursor:pointer;">Sign Up</button>
+        </div>
+        <input type="email" id="emailInput" placeholder="Email address" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:7px;font-size:15px;background:var(--cream);font-family:inherit;margin-bottom:8px;">
+        <input type="password" id="passwordInput" placeholder="Password (min 6 characters)" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:7px;font-size:15px;background:var(--cream);font-family:inherit;margin-bottom:8px;">
+        <input type="text" id="nameInput" placeholder="Full name" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:7px;font-size:15px;background:var(--cream);font-family:inherit;margin-bottom:8px;display:none;">
+        <button type="button" onclick="emailAuth()" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--forest),var(--leaf));color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;min-height:48px;">Sign In</button>
+        <div style="margin-top:8px;text-align:right;">
+          <button type="button" onclick="forgotPassword()" style="background:none;border:none;color:var(--leaf);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;">Forgot password?</button>
+        </div>
+      </div>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- RESEARCHER WELCOME MODAL -->
+<div class="overlay hidden" id="resModal">
+  <div class="mbox">
+    <div class="mhead"><h2>👋 Welcome, Researcher</h2><p>Your account has been verified</p></div>
+    <div class="mscroll">
+      <div class="user-chip" id="userChipM">
+        <img id="userAvatarM" src="" alt="">
+        <div><div class="uc-name" id="userDisplayName"></div><div class="uc-email" id="userEmailM"></div></div>
+      </div>
+      <div class="id-box">
+        <div class="id-label">Your Researcher ID</div>
+        <div class="id-value" id="resIdDisplay"></div>
+        <div class="id-sub">Auto-generated · permanent · recorded with every submission</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;">This ID links all your submissions to your account for the field operations team.</p>
+    </div>
+    <div class="mfoot">
+      <div class="btn-row">
+        <button class="mbtn primary" onclick="confirmResearcher()">🚀 Start Survey</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GPS GUARD MODAL -->
+<div class="overlay hidden" id="gpsModal">
+  <div class="mbox">
+    <div class="mhead"><h2>📍 Location Verification</h2><p id="gpsSub">Connecting to GPS satellites…</p></div>
+    <div class="mscroll">
+      <div class="gps-phase" id="gpsPhase">📡 Searching for satellites — hold device still…</div>
+      <ul class="gps-steps">
+        <li class="gps-step active" id="gs-acquire"><span class="step-icon">🛰</span><div class="step-text"><strong>Acquiring GPS Signal</strong><span id="gs-acquire-d">Waiting for location fix…</span></div></li>
+        <li class="gps-step" id="gs-accuracy"><span class="step-icon">🎯</span><div class="step-text"><strong>Accuracy Check</strong><span id="gs-accuracy-d">Target: ≤ 200 m</span></div></li>
+        <li class="gps-step" id="gs-distance"><span class="step-icon">📏</span><div class="step-text"><strong>Distance Check</strong><span id="gs-distance-d">Must be ≥ 50 m from last survey</span></div></li>
+      </ul>
+      <div class="gps-prog"><div class="gps-prog-bar pulsing" id="gpsProgBar"></div></div>
+      <div class="live-gps" id="liveGps" style="display:none;">
+        <strong>📡 Live GPS Reading</strong>
+        <div class="gps-coords" id="liveCoords"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;" id="liveAccTxt"></div>
+        <div id="accBadgeWrap" style="margin-top:5px;"></div>
+      </div>
+      <div class="gps-wait" id="gpsWait" style="display:none;">
+        <strong>⏳ Improving accuracy…</strong><br>
+        Hold the device still, preferably near an open window or outdoors. GPS keeps improving automatically.
+      </div>
+    </div>
+    <div class="mfoot">
+      <div class="btn-row">
+        <button class="mbtn" id="gpsCancelBtn" onclick="cancelGps()">Cancel</button>
+        <button class="mbtn primary" id="gpsRetryBtn" style="display:none;" onclick="retryGps()">🔄 Retry</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OFFLINE QUEUE MODAL -->
+<div class="overlay hidden" id="offlineModal">
+  <div class="mbox">
+    <div class="mhead"><h2>📤 Pending Submissions</h2><p>Surveys saved locally while offline</p></div>
+    <div class="mscroll">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">These were saved while offline. Connect to the internet and tap <strong>Sync Now</strong>.</p>
+      <div class="q-list" id="queueList"></div>
+      <div class="sync-prog-wrap" id="syncWrap">
+        <div class="sync-prog-outer"><div class="sync-prog-inner" id="syncBar"></div></div>
+        <div class="sync-stat" id="syncStat">Syncing…</div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <div class="btn-row">
+        <button class="mbtn" onclick="closeOfflineModal()">Close</button>
+        <button class="mbtn primary" id="syncNowBtn" onclick="syncNow()">📡 Sync Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SURVEY SCREEN -->
+<div id="surveyScreen" class="screen">
+
+  <div class="site-header">
+    <div class="header-stripe"></div>
+    <div class="header-inner">
+      <div class="header-bg" id="headerBg"></div>
+      <div class="header-eyebrow" id="headerEyebrow"></div>
+      <div class="header-title" id="headerTitle"></div>
+      <div class="header-sub" id="headerSub"></div>
+    </div>
+  </div>
+
+  <div class="gps-bar" id="gpsBar">
+    <div class="gps-bar-inner">
+      <div class="gps-dot" id="gpsDot"></div>
+      <span style="font-weight:600;">GPS:</span>
+      <span id="gpsBarTxt" style="color:var(--muted);">Inactive</span>
+    </div>
+  </div>
+
+  <div id="draftBar">
+    <div class="draft-inner">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:17px;">📝</span>
+        <div><div style="font-weight:700;color:#78350f;font-size:13px;">Unsaved draft found</div><div style="font-size:11px;color:#92400e;" id="draftSub"></div></div>
+      </div>
+      <div style="display:flex;gap:7px;">
+        <button class="draft-btn restore" onclick="restoreDraft()">↩ Restore</button>
+        <button class="draft-btn discard" onclick="discardDraft()">✕ Discard</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="netBadge"></div>
+  <div id="autosave">💾 Draft saved</div>
+
+  <div class="container">
+    <div id="resBanner">
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+        <img id="bannerAvatar" src="" alt="" style="width:28px;height:28px;border-radius:50%;">
+        <span><strong>🔬 <span id="bannerName"></span></strong> &nbsp;·&nbsp; ID: <span id="bannerId"></span></span>
+        <span class="sub-counter">📋 Submitted: <span class="sub-num" id="subCount">0</span></span>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center;">
+        <button style="font-size:12px;padding:7px 13px;border:1px solid var(--gold);background:#fff;color:var(--gold);border-radius:18px;cursor:pointer;font-weight:700;font-family:inherit;" id="pendBtn" onclick="openOfflineModal()" style="display:none;">📤 Pending <span id="pendCount">0</span></button>
+      </div>
+    </div>
+
+    <div id="pendBanner">
+      <strong>📤 You have <span id="pendCountTxt">0</span> survey(s) queued.</strong>
+      <div style="font-size:12px;margin-top:2px;">Saved while offline. Connect to sync.</div>
+      <button class="sync-btn" onclick="openOfflineModal()">View &amp; Sync →</button>
+    </div>
+
+    <form id="surveyForm" autocomplete="off">
+      <!-- Sections rendered dynamically -->
+      <div id="sectionsRoot"></div>
+
+      <div style="margin-top:10px;">
+        <button type="submit" id="submitBtn">📍 Submit Survey</button>
+        <div id="status" class="status-msg" style="display:none;"></div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   FIREBASE
+══════════════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyAXeNgPLKFgfxBKNta7UlGzHW-bjWzghas",
+  authDomain:        "survey-842bd.firebaseapp.com",
+  projectId:         "survey-842bd",
+  storageBucket:     "survey-842bd.firebasestorage.app",
+  messagingSenderId: "916255795370",
+  appId:             "1:916255795370:web:3f186720bf9e2b163dc8d3"
+};
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+/* ══════════════════════════════════════════════════════
+   CONFIG & STATE
+══════════════════════════════════════════════════════ */
+let CONFIG      = null;   // full survey config from Firestore
+let SURVEY_ID   = null;
+let CONFIG_VER  = null;
+let currentUser = null;
+let currentRes  = null;   // { name, login, email, googleUid, photoURL }
+let capturedGps = null;
+let gpsWatchId  = null;
+let autosaveTimer = null;
+let _inviteToken  = null;
+let _inviteValid  = false;
+let _inviteConsumed = false;
+
+const RES_KEY   = 'vt_researcher';
+const DRAFT_KEY = 'vt_draft';
+const QUEUE_KEY = 'vt_queue';
+const SC_KEY    = 'vt_sub_count';
+const GPS_LAST  = 'vt_gps_last';
+
+const GPS_CFG = {
+  MAX_ACC_ACCEPT:200, MAX_ACC_GOOD:60, MAX_ACC_OK:120,
+  MIN_DIST:50, POLL_INTERVAL:2500, POLL_TIMEOUT:25000,
+  GEO_TIMEOUT:12000, MAX_AGE:20000
+};
+
+/* ══════════════════════════════════════════════════════
+   BOOT — read ?survey= and load config
+══════════════════════════════════════════════════════ */
+(async function boot(){
+  const params = new URLSearchParams(window.location.search);
+  SURVEY_ID = params.get('survey');
+  const inviteFromUrl = params.get('invite');
+  if(inviteFromUrl){ sessionStorage.setItem('vt_invite_'+SURVEY_ID, inviteFromUrl); history.replaceState({},'',(window.location.pathname+'?survey='+SURVEY_ID)); }
+  _inviteToken = sessionStorage.getItem('vt_invite_'+SURVEY_ID)||null;
+
+  if(!SURVEY_ID){ showLoadErr('No survey specified. Open this link with <code>?survey=&lt;id&gt;</code> appended.'); return; }
+
+  setLoadMsg('Loading "'+SURVEY_ID+'"…');
+  try{
+    const surveyDoc = await db.collection('surveys').doc(SURVEY_ID).get();
+    if(!surveyDoc.exists){ showLoadErr('No survey found with ID "'+esc(SURVEY_ID)+'". Check the link with your supervisor.'); return; }
+    const meta = surveyDoc.data();
+    if(!meta.activeVersion){ showLoadErr('This survey has not been published yet. Ask your supervisor.'); return; }
+    const verDoc = await db.collection('surveys').doc(SURVEY_ID).collection('versions').doc(String(meta.activeVersion)).get();
+    if(!verDoc.exists){ showLoadErr('Survey version '+meta.activeVersion+' is missing. Contact your supervisor.'); return; }
+    const ver = verDoc.data();
+    CONFIG_VER = meta.activeVersion;
+    CONFIG = {
+      meta:{ name:meta.name, shortCode:meta.shortCode, county:meta.county, branding:meta.branding||{} },
+      geography: ver.geography||{constituencies:{},pollingStations:{},wardToConstituency:{}},
+      races: ver.races||[],
+      partyList: ver.partyList||[],
+      sections: ver.sections||[]
+    };
+    applyBranding();
+    document.getElementById('loginTitle').textContent = CONFIG.meta.shortCode||CONFIG.meta.name||'Field Survey';
+    document.getElementById('loginSurveyName').textContent = CONFIG.meta.name||'Survey';
+    // Check survey closed
+    const closedDoc = await db.collection('surveys').doc(SURVEY_ID).collection('_meta').doc('surveyClosed').get().catch(()=>null);
+    if(closedDoc&&closedDoc.exists&&closedDoc.data().closed){
+      showLoadErr('🔒 This survey is currently closed. Contact your field supervisor.'); return;
+    }
+    // Validate invite if present
+    await initInviteGate();
+    showScreen('loginScreen');
+    auth.onAuthStateChanged(onAuthChange);
+  }catch(e){
+    console.error(e);
+    showLoadErr('Could not load survey: '+esc(e.message));
+  }
+})();
+
+function setLoadMsg(m){ document.getElementById('loadMsg').textContent=m; }
+function showLoadErr(html){
+  document.getElementById('loadSpin').style.display='none';
+  const el=document.getElementById('loadErr');
+  el.innerHTML=html;el.style.display='block';
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+}
+function applyBranding(){
+  const b=CONFIG.meta.branding||{};
+  if(b.primaryColor) document.documentElement.style.setProperty('--forest',b.primaryColor);
+  if(b.accentColor)  document.documentElement.style.setProperty('--gold',b.accentColor);
+  document.title=(CONFIG.meta.shortCode||CONFIG.meta.name||'Survey')+' · Field Survey';
+  const sc=CONFIG.meta.shortCode||'';
+  document.getElementById('headerBg').textContent=sc.replace(/[^A-Z]/g,'').slice(0,3)||'VP';
+  document.getElementById('headerEyebrow').textContent=(CONFIG.meta.county||'')+' · '+(CONFIG.meta.shortCode||'');
+  document.getElementById('headerTitle').textContent=CONFIG.meta.name||'Field Questionnaire';
+  document.getElementById('headerSub').textContent=(b.orgName||'')+((b.tagline)?' · '+b.tagline:'');
+}
+
+/* ══════════════════════════════════════════════════════
+   INVITE GATE
+══════════════════════════════════════════════════════ */
+async function initInviteGate(){
+  const el=document.getElementById('inviteBanner');
+  const authWrap=document.getElementById('loginAuthWrap');
+  if(!_inviteToken){
+    el.className='invite-banner ib-warn';
+    el.innerHTML='<span class="ib-icon">🔒</span><div><div class="ib-title">Invite required</div><div class="ib-body">Access is by invitation only. Ask your field supervisor for an invite link.</div></div>';
+    return;
+  }
+  try{
+    const snap=await db.collection('surveys').doc(SURVEY_ID).collection('invites').doc(_inviteToken).get()
+      .catch(()=>db.collection('invites').doc(_inviteToken).get()); // fall back to global invites collection
+    if(!snap.exists){
+      el.className='invite-banner ib-err';
+      el.innerHTML='<span class="ib-icon">❌</span><div><div class="ib-title">Invalid invite link</div><div class="ib-body">This link is not recognised. Request a new one from your supervisor.</div></div>';
+      return;
+    }
+    const d=snap.data();
+    if(d.used){ el.className='invite-banner ib-err'; el.innerHTML='<span class="ib-icon">🔴</span><div><div class="ib-title">Link already used</div><div class="ib-body">Each invite link is single-use only.</div></div>'; return; }
+    if(d.expiresAt&&d.expiresAt.toDate()<new Date()){ el.className='invite-banner ib-err'; el.innerHTML='<span class="ib-icon">⏰</span><div><div class="ib-title">Link expired</div><div class="ib-body">Please request a fresh link from your supervisor.</div></div>'; return; }
+    _inviteValid=true;
+    el.className='invite-banner ib-ok';
+    el.innerHTML='<span class="ib-icon">✅</span><div><div class="ib-title">Invite verified</div><div class="ib-body">Your invite link is valid. Sign in below to continue.</div></div>';
+    authWrap.style.display='block';
+  }catch(e){
+    _inviteValid=true; // fail open
+    el.className='invite-banner ib-warn';
+    el.innerHTML='<span class="ib-icon">⚠️</span><div><div class="ib-title">Could not verify invite</div><div class="ib-body">Network error. Proceeding — your session will be verified at submission.</div></div>';
+    authWrap.style.display='block';
+  }
+}
+
+async function consumeInvite(uid){
+  if(!_inviteToken) return;
+  try{
+    const ref=db.collection('surveys').doc(SURVEY_ID).collection('invites').doc(_inviteToken);
+    const snap=await ref.get().catch(()=>null);
+    const target=snap&&snap.exists?ref:db.collection('invites').doc(_inviteToken);
+    await target.update({used:true,usedAt:firebase.firestore.FieldValue.serverTimestamp(),usedBy:uid});
+    sessionStorage.removeItem('vt_invite_'+SURVEY_ID);
+  }catch(e){ console.warn('Could not consume invite:',e.message); }
+}
+
+/* ══════════════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════════════ */
+async function signInGoogle(){
+  const btn=document.getElementById('googleBtn'),spin=document.getElementById('loginSpin'),txt=document.getElementById('loginBtnTxt'),err=document.getElementById('loginErr');
+  btn.disabled=true;spin.style.display='inline-block';txt.textContent='Signing in…';err.style.display='none';
+  try{
+    const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+    await auth.signInWithPopup(p);
+  }catch(e){
+    btn.disabled=false;spin.style.display='none';txt.textContent='Sign in with Google';
+    err.textContent=e.code==='auth/popup-closed-by-user'?'Sign-in cancelled.':'Sign-in failed: '+e.message;
+    err.style.display='block';
+  }
+}
+
+let _emailTab='login';
+function switchEmailTab(tab){
+  _emailTab=tab;const isSignup=tab==='signup';
+  document.getElementById('tabLogin').style.cssText=isSignup?'flex:1;padding:11px;border:none;background:#fff;color:var(--muted);font-weight:600;font-family:inherit;font-size:13px;cursor:pointer;':'flex:1;padding:11px;border:none;background:var(--forest);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;';
+  document.getElementById('tabSignup').style.cssText=isSignup?'flex:1;padding:11px;border:none;background:var(--forest);color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;':'flex:1;padding:11px;border:none;background:#fff;color:var(--muted);font-weight:600;font-family:inherit;font-size:13px;cursor:pointer;';
+  document.getElementById('nameInput').style.display=isSignup?'block':'none';
+}
+
+async function emailAuth(){
+  const email=document.getElementById('emailInput').value.trim(),pw=document.getElementById('passwordInput').value,name=document.getElementById('nameInput').value.trim();
+  const err=document.getElementById('loginErr');
+  if(!email||!pw){err.textContent='Enter email and password.';err.style.display='block';return;}
+  try{
+    if(_emailTab==='signup'){await auth.createUserWithEmailAndPassword(email,pw);if(name)await auth.currentUser.updateProfile({displayName:name});await auth.currentUser.reload();}
+    else{await auth.signInWithEmailAndPassword(email,pw);}
+  }catch(e){err.textContent=friendlyAuthErr(e.code)||e.message;err.style.display='block';}
+}
+
+async function forgotPassword(){
+  const email=document.getElementById('emailInput').value.trim(),err=document.getElementById('loginErr');
+  if(!email){err.textContent='Enter your email first.';err.style.display='block';return;}
+  try{await auth.sendPasswordResetEmail(email);err.style.cssText='display:block;background:#dcfce7;border-color:#86efac;color:#166534;';err.textContent='✅ Password reset email sent.';}
+  catch(e){err.textContent=friendlyAuthErr(e.code)||e.message;err.style.display='block';}
+}
+
+function friendlyAuthErr(code){
+  const m={'auth/invalid-email':'Invalid email.','auth/user-not-found':'No account with this email.','auth/wrong-password':'Incorrect password.','auth/email-already-in-use':'Email already registered — sign in instead.','auth/weak-password':'Password too short — use 6+ characters.','auth/too-many-requests':'Too many attempts — please wait.','auth/network-request-failed':'Network error.','auth/invalid-credential':'Invalid email or password.'};
+  return m[code];
+}
+
+async function onAuthChange(user){
+  if(!user){currentUser=null;return;}
+  currentUser=user;
+  if(_inviteToken&&!_inviteConsumed){_inviteConsumed=true;await consumeInvite(user.uid);}
+  const saved=localStorage.getItem(RES_KEY);
+  if(saved){
+    try{const r=JSON.parse(saved);if(r.googleUid===user.uid){currentRes=r;showSurvey();return;}else{localStorage.removeItem(RES_KEY);}}catch(e){}
+  }
+  // Show welcome modal
+  const id=generateResId(user);
+  document.getElementById('userDisplayName').textContent=user.displayName||user.email||'';
+  document.getElementById('userEmailM').textContent=user.email||'';
+  document.getElementById('resIdDisplay').textContent=id;
+  const av=document.getElementById('userAvatarM');if(user.photoURL)av.src=user.photoURL;else av.style.display='none';
+  document.getElementById('resModal').classList.remove('hidden');
+}
+
+function generateResId(user){
+  const name=user.displayName||user.email||'XX';
+  const initials=name.trim().split(/\s+/).map(w=>w[0]&&w[0].toUpperCase()||'').join('').slice(0,3).padEnd(2,'X');
+  let hash=0;for(let i=0;i<user.uid.length;i++)hash=(hash*31+user.uid.charCodeAt(i))&0xffffffff;
+  return (CONFIG.meta.shortCode||'RES').replace(/[^A-Z0-9]/gi,'').toUpperCase().slice(0,4)+'-'+initials+'-'+String(Math.abs(hash)%9000+1000);
+}
+
+function confirmResearcher(){
+  const user=currentUser,id=generateResId(user);
+  currentRes={name:user.displayName||user.email,login:id,email:user.email,googleUid:user.uid,photoURL:user.photoURL||''};
+  localStorage.setItem(RES_KEY,JSON.stringify(currentRes));
+  document.getElementById('resModal').classList.add('hidden');
+  showSurvey();
+}
+
+/* ══════════════════════════════════════════════════════
+   SHOW SURVEY — render + wire up everything
+══════════════════════════════════════════════════════ */
+function showSurvey(){
+  showScreen('surveyScreen');
+  document.getElementById('resBanner').style.display='flex';
+  document.getElementById('bannerName').textContent=currentRes.name;
+  document.getElementById('bannerId').textContent=currentRes.login;
+  const av=document.getElementById('bannerAvatar');if(currentRes.photoURL)av.src=currentRes.photoURL;else av.style.display='none';
+  loadSubCount();refreshPendUI();
+  renderSurvey();
+  checkDraft();
+  startGpsWatch();
+  attachAutosave();
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER ENGINE — dynamic from CONFIG
+══════════════════════════════════════════════════════ */
+const SECTION_COLORS=['th-forest','th-leaf','th-gold','th-sky','th-ink','th-forest','th-leaf'];
+
+function renderSurvey(){
+  const root=document.getElementById('sectionsRoot');
+  root.innerHTML='';
+  CONFIG.sections.forEach((sec,si)=>{
+    root.appendChild(renderSection(sec,SECTION_COLORS[si%SECTION_COLORS.length]));
+  });
+  if(CONFIG.races&&CONFIG.races.length){
+    root.appendChild(renderRacesSection());
+  }
+  wireConstituencyWard();
+}
+
+function renderSection(sec,colorCls){
+  const card=document.createElement('div');card.className='card';
+  card.innerHTML=`
+    <div class="card-head ${colorCls}">
+      <div class="sec-badge">${esc(sec.id)}</div>
+      <div class="sec-label">${esc(sec.label)}<span>Section ${esc(sec.id)}</span></div>
+    </div>
+    <div class="card-body"></div>`;
+  const body=card.querySelector('.card-body');
+  (sec.fields||[]).forEach(f=>body.appendChild(renderField(f)));
+  return card;
+}
+
+function renderField(f){
+  const wrap=document.createElement('div');wrap.className='field';wrap.dataset.key=f.key;
+  const lbl=`<label class="field-label"><span class="qnum">${esc(f.qnum)}.</span> ${esc(f.label)}${f.required?'':' <span class="fnote">(optional)</span>'}</label>`;
+  if(f.type==='pill_radio'){
+    wrap.innerHTML=lbl+`<div class="pill-row">`+(f.options||[]).map((o,i)=>{
+      const id=slug(f.key+'_'+i);
+      return `<div class="pill"><input type="radio" name="${attr(f.key)}" id="${id}" value="${attr(o)}" ${f.required?'required':''}><label for="${id}">${esc(o)}</label></div>`;
+    }).join('')+`</div>`;
+  } else if(f.type==='checkbox_group'){
+    wrap.innerHTML=lbl+`<div class="pill-row">`+(f.options||[]).map((o,i)=>{
+      const id=slug(f.key+'_'+i);
+      return `<div class="pill"><input type="checkbox" id="${id}" value="${attr(o)}" data-group="${attr(f.key)}"><label for="${id}">${esc(o)}</label></div>`;
+    }).join('')+`</div>`;
+  } else if(f.type==='textarea'){
+    wrap.innerHTML=lbl+`<textarea id="${attr(f.key)}" placeholder="Write here…"></textarea>`;
+  } else if(f.type==='search_select'){
+    wrap.innerHTML=lbl+`<select id="${attr(f.key)}"><option value="">— Select —</option>`+(f.options||[]).map(o=>`<option value="${attr(o)}">${esc(o)}</option>`).join('')+`</select>`;
+  } else if(f.type==='constituency_select'){
+    const consts=Object.keys(CONFIG.geography.constituencies||{});
+    wrap.innerHTML=lbl+`<div class="pilbox" id="constPilbox">`+consts.map((c,i)=>{
+      const id='const_'+i;
+      return `<div class="pilbox-item"><input type="radio" name="constituency" id="${id}" value="${attr(c)}" data-const-radio ${f.required?'required':''}><label for="${id}">${esc(c)}</label></div>`;
+    }).join('')+`</div>`;
+  } else if(f.type==='ward_select'){
+    const fkey=f.key;
+    wrap.innerHTML=lbl+`<div class="pilbox" id="wardBox_${attr(fkey)}" style="display:none;"></div>`;
+  } else {
+    wrap.innerHTML=lbl+`<div class="fnote">Field type "${esc(f.type)}" — coming soon.</div>`;
+  }
+  // Location box after constituency_select
+  if(f.type==='constituency_select'){
+    const loc=document.createElement('div');loc.className='loc-box';loc.id='locationBox';
+    loc.innerHTML=`<div class="loc-head">📍 Interview Location (GPS)</div><div class="loc-row"><span>Lat: <span class="loc-val" id="locLat">—</span></span><span>Lng: <span class="loc-val" id="locLng">—</span></span><span>Acc: <span class="loc-acc" id="locAcc">—</span></span></div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Captured automatically.</div>`;
+    wrap.appendChild(loc);
+  }
+  return wrap;
+}
+
+function wireConstituencyWard(){
+  const wardField=CONFIG.sections.flatMap(s=>s.fields).find(f=>f.type==='ward_select');
+  if(!wardField) return;
+  document.querySelectorAll('[data-const-radio]').forEach(r=>{
+    r.addEventListener('change',()=>{
+      const wards=(CONFIG.geography.constituencies[r.value])||[];
+      const box=document.getElementById('wardBox_'+wardField.key);
+      if(!box) return;
+      box.innerHTML=wards.map((w,i)=>{
+        const id='ward_'+i;
+        return `<div class="pilbox-item"><input type="radio" name="${attr(wardField.key)}" id="${id}" value="${attr(w)}"><label for="${id}">${esc(w)}</label></div>`;
+      }).join('');
+      box.style.display=wards.length?'flex':'none';
+      // Load polling stations if available
+      loadPollingStations(r.value, wards);
+    });
+  });
+}
+
+function loadPollingStations(constituency, wards){
+  const ps=CONFIG.geography.pollingStations||{};
+  // Polling stations keyed by ward
+  wards.forEach(w=>{
+    // Future: render PS search widget per ward
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   RACES SECTION (Section G analogue)
+══════════════════════════════════════════════════════ */
+function renderRacesSection(){
+  const colors=['th-ink','th-forest','th-leaf','th-sky','th-gold'];
+  const card=document.createElement('div');card.className='card';
+  card.innerHTML=`
+    <div class="card-head th-ink">
+      <div class="sec-badge">G</div>
+      <div class="sec-label">Political Sentiment &amp; Inclination<span>Candidate preferences</span></div>
+    </div>
+    <div class="card-body" id="racesRoot"></div>`;
+  const root=card.querySelector('#racesRoot');
+
+  // G1 — Re-elect Ruto (always present if races include it)
+  const rutoRace=CONFIG.races.find(r=>r.id==='race_ruto');
+  if(!rutoRace){
+    // Inject standard Ruto question
+    const rutoBlock=buildFullRaceBlock({id:'race_ruto',label:'President — Re-elect William Ruto?',pattern:'full',candidates:[{name:'William Ruto',tag:'Incumbent (Yes)'},{name:'Other Candidate',tag:'(No)'}]});
+    root.appendChild(rutoBlock);
+    // Advice to Ruto
+    root.appendChild(buildAdviceField('adviceRuto','G1.2','Your advice to President William Ruto:'));
+  }
+
+  CONFIG.races.forEach((race,ri)=>{
+    if(race.id==='race_ruto'){
+      root.appendChild(buildFullRaceBlock(race));
+      root.appendChild(buildAdviceField('adviceRuto','G1.2','Your advice to President William Ruto:'));
+      return;
+    }
+    if(race.pattern==='full'){
+      root.appendChild(buildFullRaceBlock(race));
+      // Add reasons-against and advice for each candidate
+      race.candidates.filter(c=>c.name).forEach(c=>{
+        root.appendChild(buildReasonsBlock(race,c));
+      });
+      race.candidates.filter(c=>c.name&&c.name!=='Other').forEach(c=>{
+        root.appendChild(buildAdviceField('advice_'+slug(race.id)+'_'+slug(c.name),'Advice','Advice to '+c.name+':'));
+      });
+    } else {
+      root.appendChild(buildSearchRaceBlock(race));
+    }
+  });
+
+  if(CONFIG.partyList&&CONFIG.partyList.length){
+    const partyDiv=document.createElement('div');partyDiv.className='field';
+    partyDiv.innerHTML=`<label class="field-label">Most preferred political party:</label><div class="pill-row">`+
+      CONFIG.partyList.map((p,i)=>`<div class="pill"><input type="radio" name="party" id="party_${i}" value="${attr(p)}"><label for="party_${i}">${esc(p)}</label></div>`).join('')+`</div>`;
+    root.appendChild(partyDiv);
+  }
+
+  // G vote reasons
+  const vrDiv=document.createElement('div');vrDiv.className='field';
+  vrDiv.innerHTML=`<label class="field-label">Why would you vote for your preferred candidate? <span class="fnote">(tick all that apply)</span></label><div class="pill-row">`+
+    ['Track record','Development agenda','Trustworthy','Leadership qualities','Community connection','Proven delivery','Party affiliation','New ideas','Personal help','Other'].map((o,i)=>`<div class="pill"><input type="checkbox" id="vr_${i}" value="${attr(o)}" data-group="voteReasons"><label for="vr_${i}">${esc(o)}</label></div>`).join('')+`</div>`;
+  root.appendChild(vrDiv);
+
+  // Declaration
+  const declDiv=document.createElement('div');declDiv.className='field';
+  declDiv.innerHTML=`<label class="field-label">Enumerator Declaration: I confirm this interview was conducted in accordance with survey guidelines and the respondent gave informed consent.</label><div class="pill-row"><div class="pill"><input type="radio" name="enumDecl" id="decl_y" value="Confirmed" required><label for="decl_y">✓ Confirm</label></div><div class="pill"><input type="radio" name="enumDecl" id="decl_n" value="Declined"><label for="decl_n">✕ Decline</label></div></div>`;
+  root.appendChild(declDiv);
+
+  return card;
+}
+
+function buildFullRaceBlock(race){
+  const div=document.createElement('div');div.className='race-card';
+  div.innerHTML=`<h3>${esc(race.label)}</h3>
+    <div class="field">
+      <label class="field-label">If elections were held today, who would you choose?</label>
+      <div class="gov-row">`+
+    race.candidates.filter(c=>c.name).map(c=>`
+      <div class="gov-card" data-race="${attr(race.id)}" data-cand="${attr(c.name)}">
+        <input type="radio" name="${attr('race_'+race.id)}" value="${attr(c.name)}">
+        <div class="gc-name">${esc(c.name)}</div><div class="gc-tag">${esc(c.tag||'')}</div>
+      </div>`).join('')+
+    `</div>
+    <div class="cond-field" id="govOther_${attr(race.id)}">
+      <input type="text" id="govOtherInp_${attr(race.id)}" placeholder="Please specify candidate name…">
+    </div>
+    </div>`;
+  // Wire card clicks
+  setTimeout(()=>{
+    div.querySelectorAll('.gov-card').forEach(card=>{
+      card.addEventListener('click',()=>{
+        div.querySelectorAll('.gov-card').forEach(c=>c.classList.remove('selected'));
+        card.classList.add('selected');
+        card.querySelector('input').checked=true;
+        const otherField=document.getElementById('govOther_'+race.id);
+        if(otherField) otherField.classList.toggle('vis',card.dataset.cand==='Other');
+        updateRaceNegatives(race.id,card.dataset.cand);
+      });
+    });
+  },0);
+  return div;
+}
+
+function buildReasonsBlock(race,cand){
+  const divId='reasons_'+slug(race.id)+'_'+slug(cand.name);
+  const disId='dis_'+slug(race.id)+'_'+slug(cand.name);
+  const groupKey='not_'+slug(race.id)+'_'+slug(cand.name);
+  const div=document.createElement('div');div.className='field';div.id=divId;
+  div.innerHTML=`<label class="field-label" style="font-size:13px;">Reasons for NOT voting for ${esc(cand.name)}: <span class="fnote">(tick all that apply)</span></label>
+    <div class="pill-row">`+
+    ['Poor performance','Corruption','Untrustworthy','Tribal favoritism','Party affiliation','Weak leadership','No vision','Land issues','Other'].map((o,i)=>`<div class="pill"><input type="checkbox" id="${groupKey}_${i}" value="${attr(o)}" data-group="${attr(groupKey)}"><label for="${groupKey}_${i}">${esc(o)}</label></div>`).join('')+
+    `</div>
+    <div class="disabled-note" id="${disId}">⚠ Disabled — you selected ${esc(cand.name)} as your preferred candidate.</div>`;
+  return div;
+}
+
+function buildSearchRaceBlock(race){
+  const div=document.createElement('div');div.className='field';
+  const prefId='pref_'+slug(race.id);
+  div.innerHTML=`<label class="field-label">Preferred candidate — ${esc(race.label)}:</label>
+    <select id="${prefId}">
+      <option value="">— Select or type below —</option>
+      ${race.candidates.filter(c=>c.name).map(c=>`<option value="${attr(c.name)}">${esc(c.name)}</option>`).join('')}
+    </select>`;
+  return div;
+}
+
+function buildAdviceField(key,qnum,labelTxt){
+  const div=document.createElement('div');div.className='field';
+  div.innerHTML=`<label class="field-label"><span class="qnum">${esc(qnum)}.</span> ${esc(labelTxt)}</label><textarea id="${attr(key)}" placeholder="Your advice or message…"></textarea>`;
+  return div;
+}
+
+function updateRaceNegatives(raceId,selectedCand){
+  const race=CONFIG.races.find(r=>r.id===raceId);
+  if(!race) return;
+  race.candidates.filter(c=>c.name&&c.name!=='Other').forEach(c=>{
+    const divId='reasons_'+slug(raceId)+'_'+slug(c.name);
+    const disId='dis_'+slug(raceId)+'_'+slug(c.name);
+    const reasonDiv=document.getElementById(divId);
+    const disNote=document.getElementById(disId);
+    if(!reasonDiv) return;
+    const isSel=c.name===selectedCand;
+    reasonDiv.querySelector('.pill-row').style.display=isSel?'none':'flex';
+    if(disNote) disNote.style.display=isSel?'block':'none';
+    if(isSel) reasonDiv.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   GPS BACKGROUND WATCH
+══════════════════════════════════════════════════════ */
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function getLastGps(){ try{const s=JSON.parse(localStorage.getItem(GPS_LAST)||'null');return(s&&s.day===todayKey())?s:null;}catch{return null;} }
+function saveLastGps(lat,lng,ts){ localStorage.setItem(GPS_LAST,JSON.stringify({lat,lng,ts,day:todayKey()})); }
+function haversine(la1,lo1,la2,lo2){ const R=6371000,dL=(la2-la1)*Math.PI/180,dO=(lo2-lo1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+function accTier(acc){ return acc<=GPS_CFG.MAX_ACC_GOOD?'good':acc<=GPS_CFG.MAX_ACC_OK?'ok':'poor'; }
+
+function startGpsWatch(){
+  if(!navigator.geolocation) return;
+  document.getElementById('gpsBar').style.display='block';
+  setGpsDot('acquiring');document.getElementById('gpsBarTxt').textContent='Acquiring…';
+  gpsWatchId=navigator.geolocation.watchPosition(pos=>{
+    const acc=Math.round(pos.coords.accuracy),tier=accTier(acc);
+    setGpsDot(tier==='good'?'good':tier==='ok'?'acquiring':'poor');
+    document.getElementById('gpsBarTxt').textContent='±'+acc+'m';
+    capturedGps={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:acc,ts:Date.now()};
+    const lat=pos.coords.latitude,lng=pos.coords.longitude;
+    const latEl=document.getElementById('locLat'),lngEl=document.getElementById('locLng'),accEl=document.getElementById('locAcc');
+    if(latEl) latEl.textContent=lat.toFixed(6);
+    if(lngEl) lngEl.textContent=lng.toFixed(6);
+    if(accEl){ accEl.textContent='±'+acc+'m';accEl.className='loc-acc '+tier; }
+    const lb=document.getElementById('locationBox');if(lb) lb.style.display='block';
+  },()=>{setGpsDot('poor');document.getElementById('gpsBarTxt').textContent='Unavailable';},
+  {enableHighAccuracy:true,maximumAge:GPS_CFG.MAX_AGE,timeout:GPS_CFG.GEO_TIMEOUT});
+}
+function setGpsDot(cls){ const d=document.getElementById('gpsDot');if(d)d.className='gps-dot '+cls; }
+
+/* ══════════════════════════════════════════════════════
+   GPS GUARD MODAL
+══════════════════════════════════════════════════════ */
+let _gpsResolve=null,_gpsPollTmr=null,_gpsBest=null,_gpsDeadlineTmr=null,_gpsPhaseCount=0;
+
+function openGpsGuard(){
+  return new Promise(res=>{
+    _gpsResolve=res;_gpsBest=null;_gpsPhaseCount=0;
+    document.getElementById('gpsModal').classList.remove('hidden');
+    setGpsStep('acquire','active','Waiting for location fix…');
+    setGpsStep('accuracy','','Target: ≤ 200 m — improving…');
+    setGpsStep('distance','','Must be ≥ 50 m from last survey');
+    setGpsProg(5,true);
+    document.getElementById('gpsPhase').textContent='📡 Searching for satellites — hold device still…';
+    document.getElementById('gpsPhase').style.display='block';
+    document.getElementById('liveGps').style.display='none';
+    document.getElementById('gpsWait').style.display='none';
+    document.getElementById('gpsRetryBtn').style.display='none';
+    document.getElementById('gpsCancelBtn').textContent='Cancel';
+    if(!navigator.geolocation){
+      setGpsStep('acquire','fail','GPS not available');
+      setGpsProg(100,false);
+      document.getElementById('gpsPhase').textContent='📵 GPS unavailable — please enable location services';
+      document.getElementById('gpsRetryBtn').style.display='inline-block';
+      if(_gpsResolve){_gpsResolve({ok:false,reason:'no_gps'});_gpsResolve=null;}
+      return;
+    }
+    _gpsStartPoll();
+  });
+}
+function cancelGps(){ _gpsStopPoll();document.getElementById('gpsModal').classList.add('hidden');if(_gpsResolve){_gpsResolve({ok:false,reason:'cancelled'});_gpsResolve=null;} }
+function retryGps(){ document.getElementById('gpsRetryBtn').style.display='none';_gpsBest=null;_gpsPhaseCount=0;setGpsStep('acquire','active','Waiting…');setGpsStep('accuracy','','');setGpsStep('distance','','');setGpsProg(5,true);document.getElementById('liveGps').style.display='none';document.getElementById('gpsWait').style.display='none';_gpsStartPoll(); }
+function _gpsStartPoll(){ _gpsStopPoll();_gpsPollOnce();_gpsPollTmr=setInterval(_gpsPollOnce,GPS_CFG.POLL_INTERVAL);_gpsDeadlineTmr=setTimeout(()=>{_gpsStopPoll();if(_gpsBest){_gpsFinalize(_gpsBest);}else{setGpsProg(80,false);document.getElementById('gpsPhase').textContent='⏰ Timed out — move outdoors and tap Retry';document.getElementById('gpsRetryBtn').style.display='inline-block';if(_gpsResolve){_gpsResolve({ok:false,reason:'gps_timeout'});_gpsResolve=null;}}},GPS_CFG.POLL_TIMEOUT); }
+function _gpsStopPoll(){ clearInterval(_gpsPollTmr);clearTimeout(_gpsDeadlineTmr);_gpsPollTmr=null;_gpsDeadlineTmr=null; }
+function _gpsPollOnce(){ navigator.geolocation.getCurrentPosition(_gpsOnFix,_gpsOnErr,{enableHighAccuracy:true,timeout:GPS_CFG.GEO_TIMEOUT,maximumAge:GPS_CFG.MAX_AGE}); }
+function _gpsOnFix(pos){
+  const lat=pos.coords.latitude,lng=pos.coords.longitude,acc=Math.round(pos.coords.accuracy),ts=Date.now();
+  if(!_gpsBest||acc<_gpsBest.accuracy)_gpsBest={lat,lng,accuracy:acc,ts};
+  _gpsPhaseCount++;
+  setGpsStep('acquire','done',lat.toFixed(5)+', '+lng.toFixed(5)+' (±'+acc+'m)');
+  const tier=accTier(acc);
+  if(tier==='good'){ setGpsStep('accuracy','done','±'+acc+'m — excellent ✅');document.getElementById('gpsPhase').textContent='✅ Excellent accuracy — verifying distance…';document.getElementById('gpsWait').style.display='none'; }
+  else if(tier==='ok'){ setGpsStep('accuracy','active','±'+acc+'m — improving…');document.getElementById('gpsPhase').textContent='🎯 Getting sharper — hold still…';document.getElementById('gpsWait').style.display='block'; }
+  else{ setGpsStep('accuracy','active','±'+acc+'m — poor, searching…');document.getElementById('gpsPhase').textContent='📡 Searching — move to open sky…';document.getElementById('gpsWait').style.display='block'; }
+  const prog=Math.min(10+(_gpsPhaseCount/8)*55+(tier==='good'?30:tier==='ok'?15:0),90);
+  setGpsProg(prog,tier==='poor');
+  document.getElementById('liveGps').style.display='block';
+  document.getElementById('liveCoords').textContent='Lat: '+lat.toFixed(6)+'   Lng: '+lng.toFixed(6);
+  document.getElementById('liveAccTxt').textContent='Current: ±'+acc+'m  Best: ±'+_gpsBest.accuracy+'m';
+  const bw=document.getElementById('accBadgeWrap');
+  bw.innerHTML=`<span class="acc-badge acc-${tier}">${tier==='good'?'✅ Excellent':tier==='ok'?'⚠ Acceptable':'❌ Poor'} (±${acc}m)</span>`;
+  if(acc<=GPS_CFG.MAX_ACC_ACCEPT){_gpsStopPoll();_gpsFinalize(_gpsBest);}
+}
+function _gpsOnErr(e){ _gpsPhaseCount++;setGpsStep('acquire','active',['🔒 Permission denied','📵 Unavailable','⏰ Timed out'][e.code-1]||'GPS error');setGpsProg(Math.min(10+_gpsPhaseCount*5,50),true); }
+function _gpsFinalize(fix){
+  setGpsProg(100,false);
+  setGpsStep('distance','active');
+  const last=getLastGps();
+  if(last){
+    const dist=haversine(last.lat,last.lng,fix.lat,fix.lng);
+    if(dist<GPS_CFG.MIN_DIST){
+      const still=Math.round(GPS_CFG.MIN_DIST-dist);
+      setGpsStep('distance','fail','Only '+Math.round(dist)+'m — move '+still+'m further');
+      document.getElementById('gpsPhase').textContent='🚫 '+Math.round(dist)+'m from last interview — move '+still+'m and retry';
+      document.getElementById('gpsRetryBtn').style.display='inline-block';
+      if(_gpsResolve){_gpsResolve({ok:false,reason:'distance',dist});_gpsResolve=null;}
+      return;
+    }
+    setGpsStep('distance','done',Math.round(dist)+'m from last ✓');
+  } else { setGpsStep('distance','skipped','First survey today — skipped'); }
+  capturedGps=fix;saveLastGps(fix.lat,fix.lng,fix.ts);
+  document.getElementById('gpsCancelBtn').textContent='Close';
+  document.getElementById('gpsPhase').style.display='none';
+  setTimeout(()=>{
+    document.getElementById('gpsModal').classList.add('hidden');
+    if(_gpsResolve){_gpsResolve({ok:true,...fix});_gpsResolve=null;}
+  },800);
+}
+function setGpsStep(id,state,detail){
+  const li=document.getElementById('gs-'+id);if(!li)return;
+  li.className='gps-step '+(state||'');
+  const d=document.getElementById('gs-'+id+'-d');if(d&&detail!==undefined)d.textContent=detail;
+}
+function setGpsProg(pct,pulse){
+  const bar=document.getElementById('gpsProgBar');if(!bar)return;
+  bar.style.width=Math.min(pct,100)+'%';
+  if(pulse)bar.classList.add('pulsing');else bar.classList.remove('pulsing');
+}
+
+/* ══════════════════════════════════════════════════════
+   DRAFT / AUTOSAVE
+══════════════════════════════════════════════════════ */
+function snapForm(){
+  const s={};
+  document.querySelectorAll('input[type=radio]').forEach(r=>{if(r.checked)s[r.name]=r.value;});
+  document.querySelectorAll('input[type=checkbox]').forEach(cb=>{s['cb_'+cb.id]=cb.checked;});
+  document.querySelectorAll('input[type=text],textarea,select').forEach(el=>{if(el.id)s[el.id]=el.value;});
+  s._savedAt=new Date().toISOString();return s;
+}
+function applySnap(s){
+  if(!s)return;
+  document.querySelectorAll('input[type=radio]').forEach(r=>{if(s[r.name]!==undefined)r.checked=(r.value===s[r.name]);});
+  document.querySelectorAll('input[type=checkbox]').forEach(cb=>{if(s['cb_'+cb.id]!==undefined)cb.checked=s['cb_'+cb.id];});
+  document.querySelectorAll('input[type=text],textarea,select').forEach(el=>{if(el.id&&s[el.id]!==undefined)el.value=s[el.id];});
+  // Re-trigger gov card highlights
+  document.querySelectorAll('.gov-card input:checked').forEach(inp=>{inp.closest('.gov-card')?.classList.add('selected');});
+  // Re-trigger ward display
+  const checkedConst=document.querySelector('[data-const-radio]:checked');if(checkedConst)checkedConst.dispatchEvent(new Event('change'));
+}
+function saveDraft(){ localStorage.setItem(DRAFT_KEY+SURVEY_ID,JSON.stringify(snapForm()));showAutosave(); }
+function clearDraft(){ localStorage.removeItem(DRAFT_KEY+SURVEY_ID); }
+function loadDraft(){ try{return JSON.parse(localStorage.getItem(DRAFT_KEY+SURVEY_ID)||'null');}catch{return null;} }
+function showAutosave(){ const el=document.getElementById('autosave');el.style.display='block';el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.style.display='none',400);},2200); }
+function checkDraft(){ const d=loadDraft();if(!d)return;const dt=new Date(d._savedAt);document.getElementById('draftSub').textContent='Last saved: '+dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});document.getElementById('draftBar').style.display='block'; }
+function restoreDraft(){ applySnap(loadDraft());document.getElementById('draftBar').style.display='none';showAutosave(); }
+function discardDraft(){ if(!confirm('Discard saved draft?'))return;clearDraft();document.getElementById('draftBar').style.display='none'; }
+function attachAutosave(){ const f=document.getElementById('surveyForm');f.addEventListener('input',()=>{clearTimeout(autosaveTimer);autosaveTimer=setTimeout(saveDraft,1500);});f.addEventListener('change',()=>{clearTimeout(autosaveTimer);autosaveTimer=setTimeout(saveDraft,1500);}); }
+
+/* ══════════════════════════════════════════════════════
+   OFFLINE QUEUE
+══════════════════════════════════════════════════════ */
+function getQueue(){ try{return JSON.parse(localStorage.getItem(QUEUE_KEY+SURVEY_ID)||'[]');}catch{return[];} }
+function saveQueue(q){ localStorage.setItem(QUEUE_KEY+SURVEY_ID,JSON.stringify(q)); }
+function enqueue(d){ d._queuedAt=new Date().toISOString();d._queueId='q_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);const q=getQueue();q.push(d);saveQueue(q);refreshPendUI(); }
+function dequeue(id){ saveQueue(getQueue().filter(d=>d._queueId!==id));refreshPendUI(); }
+function refreshPendUI(){
+  const n=getQueue().length;
+  const pb=document.getElementById('pendBtn'),pbn=document.getElementById('pendBanner');
+  if(pb) pb.style.display=n>0?'inline-block':'none';
+  if(pbn) pbn.style.display=n>0?'block':'none';
+  const ct=document.getElementById('pendCountTxt'),cb=document.getElementById('pendCount');
+  if(ct)ct.textContent=n;if(cb)cb.textContent=n;
+}
+function renderQueue(){
+  const l=document.getElementById('queueList'),q=getQueue();
+  if(!q.length){l.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:14px;">No pending surveys.</div>';return;}
+  l.innerHTML=q.map(d=>{const dt=new Date(d._queuedAt);return`<div class="q-item"><div><div style="font-weight:700;">${esc(d.constituency||'—')} / ${esc(d.ward||'—')}</div><div style="font-size:11px;color:#92400e;">${dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div><button class="qi-del" onclick="removeQ('${attr(d._queueId)}')">🗑</button></div>`;}).join('');
+}
+function removeQ(id){ if(!confirm('Remove queued survey?'))return;dequeue(id);renderQueue(); }
+function openOfflineModal(){ renderQueue();document.getElementById('offlineModal').classList.remove('hidden'); }
+function closeOfflineModal(){ document.getElementById('offlineModal').classList.add('hidden'); }
+
+async function syncNow(){
+  if(!navigator.onLine){alert('You are offline. Please connect first.');return;}
+  const q=getQueue();if(!q.length){closeOfflineModal();return;}
+  const btn=document.getElementById('syncNowBtn');btn.disabled=true;
+  const wrap=document.getElementById('syncWrap'),bar=document.getElementById('syncBar'),stat=document.getElementById('syncStat');
+  wrap.style.display='block';let done=0;
+  for(const e of q){
+    stat.textContent='Syncing '+(done+1)+' of '+q.length+'…';bar.style.width=Math.round(done/q.length*100)+'%';
+    try{const{_queueId,_queuedAt,...data}=e;await db.collection('surveys').doc(SURVEY_ID).collection('responses').add({...data,_syncedAt:firebase.firestore.FieldValue.serverTimestamp()});dequeue(_queueId);done++;}catch(err){console.error(err);}
+  }
+  bar.style.width='100%';stat.textContent=done+' of '+q.length+' synced.';btn.disabled=false;renderQueue();setTimeout(()=>wrap.style.display='none',2000);
+}
+
+async function syncBackground(){
+  const q=getQueue();if(!q.length||!navigator.onLine)return;
+  for(const e of [...q]){
+    try{const{_queueId,_queuedAt,...data}=e;await db.collection('surveys').doc(SURVEY_ID).collection('responses').add({...data,_syncedAt:firebase.firestore.FieldValue.serverTimestamp()});dequeue(_queueId);}catch{break;}
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SUBMISSION COUNTER
+══════════════════════════════════════════════════════ */
+function getSubCount(){ return parseInt(localStorage.getItem(SC_KEY+SURVEY_ID)||'0',10); }
+function incrementSubCount(){ const n=getSubCount()+1;localStorage.setItem(SC_KEY+SURVEY_ID,n);const el=document.getElementById('subCount');if(el){el.textContent=n;el.style.transition='transform .2s,opacity .2s';el.style.transform='scale(1.4)';el.style.opacity='.6';setTimeout(()=>{el.style.transform='scale(1)';el.style.opacity='1';},220);}return n; }
+function loadSubCount(){ const el=document.getElementById('subCount');if(el)el.textContent=getSubCount(); }
+
+/* ══════════════════════════════════════════════════════
+   DATA COLLECTION
+══════════════════════════════════════════════════════ */
+function collectData(){
+  const d={surveyId:SURVEY_ID,configVersion:CONFIG_VER,_submittedAt:new Date().toISOString()};
+  // Standard fields from sections
+  CONFIG.sections.forEach(sec=>{
+    (sec.fields||[]).forEach(f=>{
+      if(f.type==='pill_radio'||f.type==='constituency_select'){
+        const nm=f.type==='constituency_select'?'constituency':f.key;
+        const el=document.querySelector('input[name="'+nm+'"]:checked');
+        d[f.key]=el?el.value:'';
+      } else if(f.type==='ward_select'){
+        const el=document.querySelector('input[name="'+f.key+'"]:checked');
+        d[f.key]=el?el.value:'';
+      } else if(f.type==='checkbox_group'){
+        d[f.key]=Array.from(document.querySelectorAll('[data-group="'+f.key+'"]:checked')).map(el=>el.value);
+      } else if(f.type==='textarea'||f.type==='search_select'){
+        const el=document.getElementById(f.key);d[f.key]=el?el.value.trim():'';
+      }
+    });
+  });
+  // Also capture constituency from radio name if ward_select used
+  const constEl=document.querySelector('input[name="constituency"]:checked');
+  if(constEl&&!d.constituency) d.constituency=constEl.value;
+
+  // Races
+  CONFIG.races.forEach(race=>{
+    if(race.pattern==='full'){
+      const sel=document.querySelector('input[name="race_'+race.id+'"]:checked');
+      d['race_'+race.id]=sel?sel.value:'';
+      if(sel&&sel.value==='Other'){const oi=document.getElementById('govOtherInp_'+race.id);d['race_'+race.id+'_other']=oi?oi.value.trim():'';}
+      race.candidates.filter(c=>c.name).forEach(c=>{
+        d['not_'+slug(race.id)+'_'+slug(c.name)]=Array.from(document.querySelectorAll('[data-group="not_'+slug(race.id)+'_'+slug(c.name)+'"]:checked')).map(el=>el.value);
+        const adv=document.getElementById('advice_'+slug(race.id)+'_'+slug(c.name));
+        d['advice_'+slug(race.id)+'_'+slug(c.name)]=adv?adv.value.trim():'';
+      });
+    } else {
+      const sel=document.getElementById('pref_'+slug(race.id));
+      d['pref_'+slug(race.id)]=sel?sel.value:'';
+    }
+  });
+  // Advice to Ruto
+  const ar=document.getElementById('adviceRuto');if(ar)d.adviceRuto=ar.value.trim();
+  // Party + vote reasons + declaration
+  const partyEl=document.querySelector('input[name="party"]:checked');d.party=partyEl?partyEl.value:'';
+  d.voteReasons=Array.from(document.querySelectorAll('[data-group="voteReasons"]:checked')).map(el=>el.value);
+  const declEl=document.querySelector('input[name="enumDecl"]:checked');d.enumDecl=declEl?declEl.value:'';
+  // Researcher metadata
+  d._researcher     = currentRes?currentRes.name:'Unknown';
+  d._researcherLogin= currentRes?currentRes.login:'Unknown';
+  d._researcherEmail= currentRes?currentRes.email:'';
+  d._researcherGoogleUid= currentRes?currentRes.googleUid:'';
+  d._respondentId   = 'R_'+Date.now();
+  // GPS
+  d._gpsLat      = capturedGps?capturedGps.lat:null;
+  d._gpsLng      = capturedGps?capturedGps.lng:null;
+  d._gpsAccuracy = capturedGps?capturedGps.accuracy:null;
+  d._gpsSkipped  = !capturedGps;
+  return d;
+}
+
+/* ══════════════════════════════════════════════════════
+   VALIDATION
+══════════════════════════════════════════════════════ */
+function validate(){
+  // Required fields from config
+  for(const sec of CONFIG.sections){
+    for(const f of (sec.fields||[])){
+      if(!f.required) continue;
+      let val='';
+      if(f.type==='pill_radio'||f.type==='constituency_select'){
+        const nm=f.type==='constituency_select'?'constituency':f.key;
+        val=document.querySelector('input[name="'+nm+'"]:checked')?.value||'';
+      } else if(f.type==='ward_select'){
+        val=document.querySelector('input[name="'+f.key+'"]:checked')?.value||'';
+      } else if(f.type==='textarea'||f.type==='search_select'){
+        val=document.getElementById(f.key)?.value.trim()||'';
+      }
+      if(!val){
+        highlightMissing(f.key,f.qnum+': '+f.label+' is required.');
+        return false;
+      }
+    }
+  }
+  // Declaration required
+  if(!document.querySelector('input[name="enumDecl"]:checked')){
+    showStatus('⚠️ Please confirm the enumerator declaration.','warning');
+    return false;
+  }
+  return true;
+}
+
+function highlightMissing(key,msg){
+  const wrap=document.querySelector('[data-key="'+key+'"]')||document.querySelector('[id="'+key+'"]')?.closest('.field');
+  if(wrap){
+    wrap.classList.add('req-missing','field-shake');
+    wrap.scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(()=>wrap.classList.remove('req-missing','field-shake'),4000);
+  }
+  showStatus('⚠️ '+msg,'warning');
+}
+
+/* ══════════════════════════════════════════════════════
+   AUDIT LOG
+══════════════════════════════════════════════════════ */
+let _surveyStartedAt = null;
+(function trackStart(){
+  setTimeout(()=>{
+    const form=document.getElementById('surveyForm');
+    if(form) form.addEventListener('change',()=>{if(!_surveyStartedAt)_surveyStartedAt=new Date().toISOString();},{once:true});
+  },500);
+})();
+
+async function saveAuditLog(respondentId, submittedAt){
+  try{
+    const totalSec=_surveyStartedAt?Math.round((new Date(submittedAt)-new Date(_surveyStartedAt))/1000):null;
+    await db.collection('surveys').doc(SURVEY_ID).collection('audit_logs').add({
+      surveyId:SURVEY_ID,configVersion:CONFIG_VER,respondentId,
+      researcherId:currentRes?.login||'Unknown',researcherName:currentRes?.name||'Unknown',researcherEmail:currentRes?.email||'',
+      surveyStartedAt:_surveyStartedAt||null,surveySubmittedAt:submittedAt,totalDurationSec:totalSec,
+      _flagged:totalSec!==null&&totalSec<120,
+      _flagReason:totalSec!==null&&totalSec<120?'Completed in '+totalSec+'s — below 2 min threshold':null,
+      gpsSnapshot:capturedGps?{lat:capturedGps.lat,lng:capturedGps.lng,accuracy:capturedGps.accuracy}:null,
+      deviceInfo:{userAgent:navigator.userAgent,platform:navigator.platform||'unknown',language:navigator.language,online:navigator.onLine},
+      _serverTimestamp:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){ console.warn('[Audit] Failed:',e.message); }
+}
+
+/* ══════════════════════════════════════════════════════
+   SUBMIT
+══════════════════════════════════════════════════════ */
+document.getElementById('surveyForm').addEventListener('submit',async function(e){
+  e.preventDefault();
+  const btn=document.getElementById('submitBtn');
+
+  // 1. Validate
+  if(!validate()) return;
+  btn.disabled=true;
+  btn.innerHTML='<span style="display:inline-flex;align-items:center;justify-content:center;gap:8px;"><span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite"></span> Verifying location…</span>';
+
+  // 2. Check survey is still open
+  try{
+    const closedDoc=await db.collection('surveys').doc(SURVEY_ID).collection('_meta').doc('surveyClosed').get().catch(()=>null);
+    if(closedDoc&&closedDoc.exists&&closedDoc.data().closed){
+      showStatus('❌ This survey is currently closed. Contact your supervisor.','error');
+      btn.disabled=false;btn.textContent='📍 Submit Survey';return;
+    }
+  }catch(e){}
+
+  // 3. GPS guard
+  showStatus('Verifying GPS location…','warning');
+  const gpsResult=await openGpsGuard();
+  if(!gpsResult.ok){
+    btn.disabled=false;btn.textContent='📍 Submit Survey';
+    const reasons={cancelled:'Submission cancelled.',distance:'Too close to previous location. Move at least 50m.',no_gps:'GPS unavailable. Enable location services and retry.',gps_timeout:'GPS timed out. Move outdoors and retry.'};
+    showStatus('❌ '+(reasons[gpsResult.reason]||'GPS check failed.'),'error');
+    return;
+  }
+
+  // 4. Save
+  btn.innerHTML='<span style="display:inline-flex;align-items:center;justify-content:center;gap:8px;"><span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite"></span> Submitting…</span>';
+  const data=collectData();
+
+  if(!navigator.onLine){
+    enqueue(data);
+    saveAuditLog(data._respondentId,data._submittedAt);
+    incrementSubCount();
+    showStatus('📵 Offline — survey saved locally and will sync when reconnected.','offline',7000);
+    btn.disabled=false;btn.textContent='📍 Submit Survey';
+    resetForm();return;
+  }
+
+  try{
+    await db.collection('surveys').doc(SURVEY_ID).collection('responses').add({...data,_serverTimestamp:firebase.firestore.FieldValue.serverTimestamp()});
+    saveAuditLog(data._respondentId,data._submittedAt);
+    incrementSubCount();
+    showStatus('✅ Submitted successfully. Thank you.','success',8000);
+    resetForm();
+  }catch(err){
+    console.error(err);
+    enqueue(data);
+    showStatus('⚠️ Submission failed — saved locally and will retry when online.','warning',7000);
+  }
+  btn.disabled=false;btn.textContent='📍 Submit Survey';
+});
+
+function showStatus(msg,type,dur){
+  const el=document.getElementById('status');el.textContent=msg;el.className='status-msg '+type;el.style.display='flex';
+  if(dur)setTimeout(()=>el.style.display='none',dur);
+}
+
+function resetForm(){
+  document.getElementById('surveyForm').reset();
+  document.querySelectorAll('.gov-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelectorAll('.cond-field').forEach(f=>f.classList.remove('vis'));
+  document.querySelectorAll('.disabled-note').forEach(n=>n.style.display='none');
+  document.querySelectorAll('[id^="wardBox_"]').forEach(b=>{b.innerHTML='';b.style.display='none';});
+  capturedGps=null;const lb=document.getElementById('locationBox');if(lb)lb.style.display='none';
+  clearDraft();document.getElementById('draftBar').style.display='none';
+  _surveyStartedAt=null;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ══════════════════════════════════════════════════════
+   NETWORK
+══════════════════════════════════════════════════════ */
+function updateNet(online){
+  const b=document.getElementById('netBadge');
+  b.className=online?'online':'offline';
+  b.innerHTML=online?'✅ Online':'📵 Offline';
+  b.style.display='flex';
+  clearTimeout(b._t);if(online){b._t=setTimeout(()=>b.style.display='none',3000);syncBackground();}
+}
+window.addEventListener('online',()=>updateNet(true));
+window.addEventListener('offline',()=>updateNet(false));
+
+/* ══════════════════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════════════════ */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function attr(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function slug(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');}
+</script>
+</body>
+</html>
