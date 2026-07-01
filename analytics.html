@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics · VisionTrack Political</title>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1214;--bg2:#131c1f;--bg3:#192328;--border:#1f2e33;--border2:#274048;
+  --text:#dff0ed;--muted:#6a9490;--muted2:#3d5e59;
+  --accent:#2dd4bf;--accent-l:rgba(45,212,191,.12);
+  --green:#4ade80;--green-l:rgba(74,222,128,.12);
+  --amber:#fbbf24;--amber-l:rgba(251,191,36,.12);
+  --red:#f87171;--red-l:rgba(248,113,113,.12);
+  --purple:#818cf8;--purple-l:rgba(129,140,248,.12);
+  --gold:#c8963e;--gold-l:rgba(200,150,62,.12);
+  --font:'DM Sans',sans-serif;--mono:'DM Sans',sans-serif;
+  --r:10px;--r2:14px;
+  --sh:0 2px 20px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg2);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* AUTH */
+#authWall{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;}
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:44px 40px;max-width:400px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.5);}
+.auth-icon{font-size:36px;margin-bottom:16px;}
+.auth-title{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6;}
+.auth-survey-name{font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-l);border:1px solid rgba(45,212,191,.2);border-radius:8px;padding:8px 14px;margin-bottom:20px;}
+.google-btn{width:100%;padding:13px 18px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg3);font-family:var(--font);font-size:14px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .18s;}
+.google-btn:hover{border-color:var(--accent);}
+.google-btn:disabled{opacity:.45;cursor:not-allowed;}
+.g-icon{width:20px;height:20px;}
+.auth-spin{display:none;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+.auth-err{display:none;background:var(--red-l);border:1px solid rgba(248,113,113,.3);color:var(--red);border-radius:7px;padding:10px 14px;font-size:12px;margin-top:12px;text-align:left;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* NO SURVEY */
+#noSurveyScreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px;}
+.ns-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:44px 40px;max-width:440px;width:100%;text-align:center;}
+.ns-back{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--accent);color:#0d1214;border:none;border-radius:var(--r);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;margin-top:20px;}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.brand{font-family:'Fraunces',serif;font-size:16px;font-weight:700;color:var(--text);}
+.survey-pill{background:var(--accent-l);border:1px solid rgba(45,212,191,.2);color:var(--accent);font-size:11px;font-weight:700;padding:4px 12px;border-radius:16px;}
+.divider{width:1px;height:24px;background:var(--border);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted);transition:all .15s;text-decoration:none;white-space:nowrap;}
+.btn:hover{border-color:var(--border2);color:var(--text);}
+.btn.primary{background:var(--accent);color:#0d1214;border-color:var(--accent);}
+.btn.primary:hover{background:#14b8a6;}
+.btn.gold{background:var(--gold);color:#fff;border-color:var(--gold);}
+.btn:disabled{opacity:.4;pointer-events:none;}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:18px;padding:3px 10px 3px 3px;}
+.user-ava{width:26px;height:26px;border-radius:50%;object-fit:cover;}
+.user-name{font-size:12px;font-weight:600;color:var(--text);}
+
+/* FILTERS */
+.filters-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.filter-label{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
+.fsel{padding:7px 11px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:12px;color:var(--text);cursor:pointer;transition:border-color .15s;}
+.fsel:focus{outline:none;border-color:var(--accent);}
+.fsel option{background:var(--bg3);}
+.filter-divider{width:1px;height:22px;background:var(--border);}
+
+/* PAGE */
+.page{max-width:1400px;margin:0 auto;padding:24px 20px 80px;}
+
+/* SECTION HEADS */
+.sec-head{display:flex;align-items:center;gap:10px;margin:28px 0 14px;}
+.sec-head:first-child{margin-top:0;}
+.sec-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--text);}
+.sec-sub{font-size:12px;color:var(--muted);}
+.sec-head::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* STAT STRIP */
+.stat-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+@media(max-width:900px){.stat-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:560px){.stat-strip{grid-template-columns:repeat(2,1fr);}}
+.stat-tile{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px 16px;position:relative;overflow:hidden;}
+.stat-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.st-accent::before{background:var(--accent);}
+.st-green::before{background:var(--green);}
+.st-amber::before{background:var(--amber);}
+.st-purple::before{background:var(--purple);}
+.st-gold::before{background:var(--gold);}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.stat-val{font-family:'Fraunces',serif;font-size:34px;font-weight:700;line-height:1;color:var(--text);}
+.stat-val.accent{color:var(--accent);}
+.stat-val.green{color:var(--green);}
+.stat-val.amber{color:var(--amber);}
+.stat-val.purple{color:var(--purple);}
+.stat-val.gold{color:var(--gold);}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:6px;}
+
+/* GRID LAYOUTS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-14{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px;}
+@media(max-width:900px){.grid-2,.grid-3,.grid-14{grid-template-columns:1fr;}}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:13px;font-weight:700;color:var(--text);}
+.card-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.card-body{padding:18px;}
+.card-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;}
+.cb-accent{background:var(--accent-l);color:var(--accent);}
+.cb-green{background:var(--green-l);color:var(--green);}
+.cb-amber{background:var(--amber-l);color:var(--amber);}
+.cb-purple{background:var(--purple-l);color:var(--purple);}
+.cb-gold{background:var(--gold-l);color:var(--gold);}
+
+/* CHART WRAPPERS */
+.chart-wrap{position:relative;width:100%;}
+.chart-wrap.sm{height:200px;}
+.chart-wrap.md{height:260px;}
+.chart-wrap.lg{height:320px;}
+.chart-wrap.xl{height:380px;}
+
+/* RACE CARDS — built dynamically for each race */
+.race-section{margin-bottom:28px;}
+.race-banner{
+  background:linear-gradient(135deg,var(--bg3),var(--bg2));
+  border:1px solid var(--border2);border-radius:var(--r2);
+  padding:14px 20px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-left:4px solid var(--accent);
+}
+.race-banner.gold{border-left-color:var(--gold);}
+.race-banner.purple{border-left-color:var(--purple);}
+.race-banner.green{border-left-color:var(--green);}
+.race-banner.amber{border-left-color:var(--amber);}
+.race-banner-name{font-family:'Fraunces',serif;font-size:16px;font-weight:700;color:var(--text);}
+.race-banner-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.race-banner-count{font-family:'Fraunces',serif;font-size:28px;font-weight:700;color:var(--accent);}
+
+/* ADVICE PILLS */
+.advice-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;}
+.advice-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);line-height:1.6;position:relative;}
+.advice-item.flagged{border-color:rgba(251,191,36,.4);background:var(--amber-l);}
+.advice-tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:var(--accent-l);color:var(--accent);margin-right:6px;}
+.advice-meta{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* CROSS-TAB */
+.xtab-wrap{overflow-x:auto;}
+.xtab{width:100%;border-collapse:collapse;font-size:12px;}
+.xtab th{padding:8px 12px;background:var(--bg3);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.xtab td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--muted);}
+.xtab td.main{color:var(--text);font-weight:600;}
+.xtab tr:last-child td{border-bottom:none;}
+.xtab tr:hover td{background:rgba(255,255,255,.02);}
+.xtab-cell{display:flex;align-items:center;gap:6px;}
+.xtab-bar{height:5px;border-radius:3px;background:var(--accent);transition:width .6s;}
+.pct-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;}
+.pb-high{background:var(--green-l);color:var(--green);}
+.pb-mid{background:var(--amber-l);color:var(--amber);}
+.pb-low{background:var(--red-l);color:var(--red);}
+
+/* WORD CLOUD STYLE LIST */
+.word-cloud{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;}
+.wc-item{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:16px;border:1px solid var(--border);font-size:12px;color:var(--text);background:var(--bg3);transition:all .15s;}
+.wc-item:hover{border-color:var(--accent);color:var(--accent);}
+.wc-item .wc-n{font-family:'Fraunces',serif;font-size:14px;font-weight:700;color:var(--accent);}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:11px 18px;border-radius:var(--r);font-size:12px;font-weight:600;box-shadow:var(--sh);transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:600;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{background:var(--green);color:#fff;}
+.toast.err{background:var(--red);color:#fff;}
+
+/* LOADER */
+#globalLoader{position:fixed;inset:0;background:rgba(13,18,20,.92);z-index:800;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+#globalLoader.show{display:flex;}
+.gl-spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+.gl-msg{font-size:13px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<!-- NO SURVEY -->
+<div id="noSurveyScreen">
+  <div class="ns-card">
+    <div style="font-size:48px;margin-bottom:16px;">📊</div>
+    <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px;">No survey selected</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:4px;">Open this page from your dashboard, or add <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;">?survey=&lt;id&gt;</code> to the URL.</div>
+    <a class="ns-back" href="dashboard.html">← Back to Dashboard</a>
+  </div>
+</div>
+
+<!-- AUTH WALL -->
+<div id="authWall" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-icon">📊</div>
+    <div class="auth-title">Analytics Dashboard</div>
+    <div class="auth-sub">Sign in to view your campaign data.</div>
+    <div class="auth-survey-name" id="authSurveyName">Loading survey…</div>
+    <button class="google-btn" id="googleBtn" onclick="signInGoogle()">
+      <svg class="g-icon" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      <div class="auth-spin" id="authSpin"></div>
+      <span id="authBtnTxt">Sign in with Google</span>
+    </button>
+    <div class="auth-err" id="authErr"></div>
+  </div>
+</div>
+
+<!-- GLOBAL LOADER -->
+<div id="globalLoader">
+  <div class="gl-spin"></div>
+  <div class="gl-msg" id="loaderMsg">Loading analytics…</div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none;">
+  <div class="topbar-left">
+    <div class="brand">📊 Analytics</div>
+    <div class="divider"></div>
+    <div class="survey-pill" id="topSurveyPill">Loading…</div>
+  </div>
+  <div class="topbar-right">
+    <a class="btn" href="dashboard.html">← Dashboard</a>
+    <button class="btn" id="opsBtn" onclick="goOps()">🛰 Operations</button>
+    <button class="btn" onclick="loadAll()">↻ Refresh</button>
+    <button class="btn gold" onclick="exportPDF()">⬇ PDF Report</button>
+    <button class="btn primary" onclick="exportCSV()">⬇ CSV</button>
+    <div class="user-chip" id="userChip" style="display:none;">
+      <img class="user-ava" id="userAva" src="" alt="">
+      <span class="user-name" id="userName"></span>
+    </div>
+    <button class="btn" onclick="signOut()" style="color:var(--red);">Sign Out</button>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters-bar" id="filtersBar" style="display:none;">
+  <span class="filter-label">Filter</span>
+  <select class="fsel" id="fConst" onchange="applyFilters()"><option value="">All Constituencies</option></select>
+  <select class="fsel" id="fWard" onchange="applyFilters()"><option value="">All Wards</option></select>
+  <select class="fsel" id="fGender" onchange="applyFilters()">
+    <option value="">All Genders</option>
+    <option value="Male">Male</option>
+    <option value="Female">Female</option>
+  </select>
+  <select class="fsel" id="fAge" onchange="applyFilters()">
+    <option value="">All Ages</option>
+    <option value="18-34">18–34</option>
+    <option value="35-44">35–44</option>
+    <option value="45-60">45–60</option>
+    <option value="61+">61+</option>
+  </select>
+  <div class="filter-divider"></div>
+  <span style="font-size:11px;color:var(--muted);" id="filterCount">All responses</span>
+  <button class="btn" onclick="clearFilters()">✕ Clear</button>
+</div>
+
+<!-- PAGE -->
+<div class="page" id="mainPage" style="display:none;">
+
+  <!-- ── SUMMARY STATS ── -->
+  <div class="stat-strip" id="statStrip">
+    <div class="stat-tile st-accent"><div class="stat-label">Total Responses</div><div class="stat-val accent" id="st-total">—</div><div class="stat-sub" id="st-survey-name">Loading…</div></div>
+    <div class="stat-tile st-green"><div class="stat-label">Constituencies</div><div class="stat-val green" id="st-const">—</div><div class="stat-sub">covered</div></div>
+    <div class="stat-tile st-amber"><div class="stat-label">Wards</div><div class="stat-val amber" id="st-wards">—</div><div class="stat-sub">covered</div></div>
+    <div class="stat-tile st-purple"><div class="stat-label">GPS Verified</div><div class="stat-val purple" id="st-gps">—</div><div class="stat-sub">responses with GPS</div></div>
+    <div class="stat-tile st-gold"><div class="stat-label">Enumerators</div><div class="stat-val gold" id="st-enum">—</div><div class="stat-sub">active researchers</div></div>
+  </div>
+
+  <!-- ── SECTION A: DEMOGRAPHICS ── -->
+  <div class="sec-head"><div><div class="sec-title">Section A — Demographics</div><div class="sec-sub">Who was interviewed</div></div></div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Gender</div><span class="card-badge cb-accent" id="genderTotal">—</span></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartGender"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Age Group</div></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartAge"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Employment Status</div></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartEmployment"></canvas></div></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Responses by Constituency</div></div>
+      <div class="card-body"><div class="chart-wrap lg"><canvas id="chartConst"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Education Level</div></div>
+      <div class="card-body"><div class="chart-wrap lg"><canvas id="chartEdu"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ── SECTION B: POLITICAL PARTICIPATION ── -->
+  <div class="sec-head"><div><div class="sec-title">Section B — Political Participation</div><div class="sec-sub">Voter registration and government accountability</div></div></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Voter Registration</div></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartVoter"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Areas Government Has NOT Delivered</div><span class="card-badge cb-amber">Multi-select</span></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartNotDelivered"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ── SECTION D: PROJECT DELIVERY ── -->
+  <div class="sec-head"><div><div class="sec-title">Section D — Performance Assessment</div><div class="sec-sub">How respondents rate current county government</div></div></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Government Performance Rating</div></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartPerf"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Projects Awareness</div></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartProjects"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ── SECTION E: SME / BUSINESS ── -->
+  <div class="sec-head"><div><div class="sec-title">Section E — Business &amp; Economic Issues</div><div class="sec-sub">Main SME challenges in respondents' areas</div></div></div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-head"><div class="card-title">SME Challenges</div><span class="card-badge cb-amber">Multi-select</span></div>
+    <div class="card-body"><div class="chart-wrap md"><canvas id="chartSME"></canvas></div></div>
+  </div>
+
+  <!-- ── SECTION H: CIVIC ── -->
+  <div class="sec-head"><div><div class="sec-title">Section H — Civic Perspectives</div></div></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Office with Most Development Impact</div></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartDevOffice"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Information Sources</div><span class="card-badge cb-accent">Multi-select</span></div>
+      <div class="card-body"><div class="chart-wrap md"><canvas id="chartInfoSrc"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ── SECTION G: POLITICAL SENTIMENT ── -->
+  <!-- Built dynamically from race config — one block per race -->
+  <div class="sec-head"><div><div class="sec-title">Section G — Political Sentiment</div><div class="sec-sub" id="racesSub">Loading race data…</div></div></div>
+  <div id="raceSections">
+    <!-- Injected dynamically per race -->
+  </div>
+
+  <!-- Party preference -->
+  <div class="grid-2" style="margin-bottom:16px;" id="partySection" style="display:none;">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Party Preference</div></div>
+      <div class="card-body"><div class="chart-wrap lg"><canvas id="chartParty"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Vote Reasons</div><span class="card-badge cb-accent">Multi-select</span></div>
+      <div class="card-body"><div class="chart-wrap lg"><canvas id="chartVoteReasons"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ── CROSS-TABS ── -->
+  <div class="sec-head"><div><div class="sec-title">Cross-Tabulations</div><div class="sec-sub">Primary race preference broken down by demographic</div></div></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-title" id="xtabGenderTitle">Preference by Gender</div></div>
+      <div class="card-body"><div class="xtab-wrap"><table class="xtab" id="xtabGender"></table></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title" id="xtabAgeTitle">Preference by Age</div></div>
+      <div class="card-body"><div class="xtab-wrap"><table class="xtab" id="xtabAge"></table></div></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-title" id="xtabConstTitle">Preference by Constituency</div></div>
+      <div class="card-body"><div class="xtab-wrap"><table class="xtab" id="xtabConst"></table></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title" id="xtabEduTitle">Preference by Education</div></div>
+      <div class="card-body"><div class="xtab-wrap"><table class="xtab" id="xtabEdu"></table></div></div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   FIREBASE
+══════════════════════════════════════════════════════ */
+const firebaseConfig={
+  apiKey:"AIzaSyAXeNgPLKFgfxBKNta7UlGzHW-bjWzghas",
+  authDomain:"survey-842bd.firebaseapp.com",
+  projectId:"survey-842bd",
+  storageBucket:"survey-842bd.firebasestorage.app",
+  messagingSenderId:"916255795370",
+  appId:"1:916255795370:web:3f186720bf9e2b163dc8d3"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+const auth=firebase.auth();
+
+/* ══════════════════════════════════════════════════════
+   SURVEY-AWARE BOOT
+   ─────────────────────────────────────────────────────
+   Reads ?survey=<id> from URL.
+   If present  → loads from surveys/{id}/responses
+   If absent   → falls back to legacy /responses
+   Both paths work. No hardcoding.
+══════════════════════════════════════════════════════ */
+const SURVEY_ID = new URLSearchParams(window.location.search).get('survey');
+
+if(!SURVEY_ID){
+  document.getElementById('noSurveyScreen').style.display='flex';
+} else {
+  document.getElementById('authWall').style.display='flex';
+}
+
+// Scoped responses reference — dynamic, covers any survey
+const responsesRef = () => SURVEY_ID
+  ? db.collection('surveys').doc(SURVEY_ID).collection('responses')
+  : db.collection('responses');
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+let RAW         = [];   // all responses from Firestore
+let FILTERED    = [];   // after filter bar
+let SURVEY_META = null; // surveys/{id} document
+let RACES       = [];   // race config from survey version
+let CHARTS      = {};   // chart instances keyed by id
+let currentUser = null;
+
+/* ══════════════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════════════ */
+async function signInGoogle(){
+  const btn=document.getElementById('googleBtn'),spin=document.getElementById('authSpin'),txt=document.getElementById('authBtnTxt'),err=document.getElementById('authErr');
+  btn.disabled=true;spin.style.display='inline-block';txt.textContent='Signing in…';err.style.display='none';
+  try{const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});await auth.signInWithPopup(p);}
+  catch(e){btn.disabled=false;spin.style.display='none';txt.textContent='Sign in with Google';err.textContent=e.code==='auth/popup-closed-by-user'?'Cancelled.':'Sign-in error: '+e.message;err.style.display='block';}
+}
+function signOut(){if(confirm('Sign out?'))auth.signOut();}
+
+auth.onAuthStateChanged(async user=>{
+  if(!user){
+    currentUser=null;
+    if(SURVEY_ID){document.getElementById('authWall').style.display='flex';}
+    document.getElementById('topbar').style.display='none';
+    document.getElementById('filtersBar').style.display='none';
+    document.getElementById('mainPage').style.display='none';
+    return;
+  }
+  currentUser=user;
+  document.getElementById('authWall').style.display='none';
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('filtersBar').style.display='flex';
+  document.getElementById('mainPage').style.display='block';
+  const chip=document.getElementById('userChip');chip.style.display='flex';
+  document.getElementById('userName').textContent=user.displayName||user.email||'';
+  if(user.photoURL)document.getElementById('userAva').src=user.photoURL;
+  await loadSurveyMeta();
+  loadAll();
+});
+
+/* ══════════════════════════════════════════════════════
+   SURVEY META — name, branding, race config
+══════════════════════════════════════════════════════ */
+async function loadSurveyMeta(){
+  if(!SURVEY_ID) return;
+  try{
+    // Load survey document
+    const snap=await db.collection('surveys').doc(SURVEY_ID).get();
+    if(!snap.exists) return;
+    SURVEY_META=snap.data();
+    const label=(SURVEY_META.name||SURVEY_ID)+' · '+(SURVEY_META.county||'');
+    document.getElementById('topSurveyPill').textContent=label;
+    document.getElementById('authSurveyName').textContent=label;
+    document.getElementById('st-survey-name').textContent=SURVEY_META.name||SURVEY_ID;
+    document.title='Analytics · '+(SURVEY_META.name||SURVEY_ID);
+
+    // Load active version for race config
+    const ver=SURVEY_META.activeVersion||1;
+    const verSnap=await db.collection('surveys').doc(SURVEY_ID).collection('versions').doc(String(ver)).get();
+    if(verSnap.exists){
+      RACES=(verSnap.data().races||[]);
+    }
+  }catch(e){console.warn('Meta load error:',e.message);}
+}
+
+/* ══════════════════════════════════════════════════════
+   LOAD ALL RESPONSES
+══════════════════════════════════════════════════════ */
+async function loadAll(){
+  showLoader('Loading responses…');
+  try{
+    const snap=await responsesRef().get();
+    RAW=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    populateFilterDropdowns();
+    applyFilters();
+    toast('✓ Loaded '+RAW.length+' responses','ok');
+  }catch(e){
+    toast('Error: '+e.message,'err');
+    console.error(e);
+  }
+  hideLoader();
+}
+
+/* ══════════════════════════════════════════════════════
+   FILTERS
+══════════════════════════════════════════════════════ */
+function populateFilterDropdowns(){
+  const consts=[...new Set(RAW.map(d=>d.constituency).filter(Boolean))].sort();
+  const wards=[...new Set(RAW.map(d=>d.ward).filter(Boolean))].sort();
+  fillSelect('fConst',consts,'All Constituencies');
+  fillSelect('fWard',wards,'All Wards');
+}
+function fillSelect(id,vals,placeholder){
+  const sel=document.getElementById(id);
+  const cur=sel.value;
+  sel.innerHTML=`<option value="">${placeholder}</option>`+vals.map(v=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(v)}</option>`).join('');
+}
+function applyFilters(){
+  const con=document.getElementById('fConst').value;
+  const ward=document.getElementById('fWard').value;
+  const gender=document.getElementById('fGender').value;
+  const age=document.getElementById('fAge').value;
+  FILTERED=RAW.filter(d=>{
+    if(con&&d.constituency!==con) return false;
+    if(ward&&d.ward!==ward) return false;
+    if(gender&&d.gender!==gender) return false;
+    if(age&&d.age!==age) return false;
+    return true;
+  });
+  document.getElementById('filterCount').textContent=
+    FILTERED.length===RAW.length
+      ? RAW.length+' responses (all)'
+      : FILTERED.length+' of '+RAW.length+' responses';
+  renderAll();
+}
+function clearFilters(){
+  ['fConst','fWard','fGender','fAge'].forEach(id=>document.getElementById(id).value='');
+  applyFilters();
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER ALL SECTIONS
+══════════════════════════════════════════════════════ */
+function renderAll(){
+  updateStats();
+  renderDemographics();
+  renderParticipation();
+  renderPerformance();
+  renderSME();
+  renderCivic();
+  renderRaces();       // ← dynamic from RACES config
+  renderCrossTabs();
+}
+
+/* ══════════════════════════════════════════════════════
+   STATS STRIP
+══════════════════════════════════════════════════════ */
+function updateStats(){
+  const n=FILTERED.length;
+  const consts=new Set(FILTERED.map(d=>d.constituency).filter(Boolean));
+  const wards=new Set(FILTERED.map(d=>d.ward).filter(Boolean));
+  const gps=FILTERED.filter(d=>d._gpsLat!=null).length;
+  const enums=new Set(FILTERED.map(d=>d._researcherLogin||d._researcher).filter(Boolean));
+  document.getElementById('st-total').textContent=n.toLocaleString();
+  document.getElementById('st-const').textContent=consts.size;
+  document.getElementById('st-wards').textContent=wards.size;
+  document.getElementById('st-gps').textContent=gps.toLocaleString();
+  document.getElementById('st-enum').textContent=enums.size;
+}
+
+/* ══════════════════════════════════════════════════════
+   SECTION A — DEMOGRAPHICS
+══════════════════════════════════════════════════════ */
+function renderDemographics(){
+  const n=FILTERED.length;
+  document.getElementById('genderTotal').textContent=n+' responses';
+
+  // Gender
+  const genderCounts=countField('gender',['Male','Female','Prefer not to say']);
+  drawDoughnut('chartGender',Object.keys(genderCounts),Object.values(genderCounts),[C.blue,C.pink,C.muted]);
+
+  // Age
+  const ageCounts=countField('age',['18-34','35-44','45-60','61+']);
+  drawBar('chartAge',Object.keys(ageCounts),Object.values(ageCounts),[C.green,C.amber,C.blue,C.purple],true);
+
+  // Employment
+  const empCounts=countField('employment',['Employed','Self-Employed','Unemployed']);
+  drawDoughnut('chartEmployment',Object.keys(empCounts),Object.values(empCounts),[C.green,C.amber,C.red]);
+
+  // Constituency
+  const constMap={};FILTERED.forEach(d=>{if(d.constituency)constMap[d.constituency]=(constMap[d.constituency]||0)+1;});
+  const constSorted=Object.entries(constMap).sort((a,b)=>b[1]-a[1]);
+  drawBar('chartConst',constSorted.map(e=>e[0]),constSorted.map(e=>e[1]),[C.blue],false,true);
+
+  // Education
+  const eduCounts=countField('education',['None','Primary','Secondary','College','University']);
+  drawBar('chartEdu',Object.keys(eduCounts),Object.values(eduCounts),[C.purple,C.blue,C.green,C.amber,C.red],false,true);
+}
+
+/* ══════════════════════════════════════════════════════
+   SECTION B — PARTICIPATION
+══════════════════════════════════════════════════════ */
+function renderParticipation(){
+  const voterCounts=countField('voter',['Yes','No']);
+  drawDoughnut('chartVoter',Object.keys(voterCounts),Object.values(voterCounts),[C.green,C.red]);
+
+  const ndOptions=['Agriculture','Infrastructure','Water','SMEs','Health','Education'];
+  const ndCounts=countMultiField('notDelivered',ndOptions);
+  drawBar('chartNotDelivered',ndOptions,ndOptions.map(o=>ndCounts[o]||0),[C.red],false,true);
+}
+
+/* ══════════════════════════════════════════════════════
+   SECTION D — PERFORMANCE
+══════════════════════════════════════════════════════ */
+function renderPerformance(){
+  const perfCounts=countField('performance',['Excellent','Good','Fair','Poor']);
+  const colors=[C.green,C.blue,C.amber,C.red];
+  drawDoughnut('chartPerf',Object.keys(perfCounts),Object.values(perfCounts),colors);
+
+  const projCounts=countField('projectsAware',['Yes','No']);
+  drawDoughnut('chartProjects',Object.keys(projCounts),Object.values(projCounts),[C.green,C.red]);
+}
+
+/* ══════════════════════════════════════════════════════
+   SECTION E — SME
+══════════════════════════════════════════════════════ */
+function renderSME(){
+  const opts=['Finance / Capital','High Taxes','Limited Market','Lack of Government Support','Competition','Poor Infrastructure','Other'];
+  const counts=countMultiField('smeChallenges',opts);
+  drawBar('chartSME',opts,opts.map(o=>counts[o]||0),[C.amber],false,true);
+}
+
+/* ══════════════════════════════════════════════════════
+   SECTION H — CIVIC
+══════════════════════════════════════════════════════ */
+function renderCivic(){
+  const devOpts=['President','Governor','MP','MCA','Senator','Women Rep','None'];
+  const devCounts=countField('devOffice',devOpts);
+  drawBar('chartDevOffice',devOpts,devOpts.map(o=>devCounts[o]||0),[C.blue],false,true);
+
+  const infoOpts=['Radio','TV','Newspapers','Social Media','Word of Mouth','Barazas','Other'];
+  const infoCounts=countMultiField('infoSources',infoOpts);
+  drawBar('chartInfoSrc',infoOpts,infoOpts.map(o=>infoCounts[o]||0),[C.purple],false,true);
+}
+
+/* ══════════════════════════════════════════════════════
+   SECTION G — POLITICAL RACES (FULLY DYNAMIC)
+   ────────────────────────────────────────────────────
+   Reads RACES array from survey version config.
+   For each race builds:
+     • Candidate preference donut/bar
+     • Reasons against each losing candidate (bar)
+     • Advice text feed per leading candidate
+   No hardcoded candidate names anywhere.
+══════════════════════════════════════════════════════ */
+function renderRaces(){
+  const root=document.getElementById('raceSections');
+  root.innerHTML='';
+
+  const racesToRender = RACES.length > 0 ? RACES : inferRacesFromData();
+
+  document.getElementById('racesSub').textContent=
+    racesToRender.length+' race'+(racesToRender.length!==1?'s':'')+' tracked in this survey';
+
+  const RACE_COLORS=['accent','gold','purple','green','amber'];
+
+  racesToRender.forEach((race,ri)=>{
+    const colorCls=RACE_COLORS[ri%RACE_COLORS.length];
+    const raceKey='race_'+slug(race.id);
+    const candidates=race.candidates.filter(c=>c.name&&c.name!=='Other');
+    const candNames=race.candidates.filter(c=>c.name).map(c=>c.name);
+
+    // Count preference field
+    const prefCounts={};candNames.forEach(n=>prefCounts[n]=0);
+    FILTERED.forEach(d=>{const v=d[raceKey];if(v&&prefCounts[v]!==undefined)prefCounts[v]++;});
+    const total=Object.values(prefCounts).reduce((a,b)=>a+b,0);
+    const leading=Object.entries(prefCounts).sort((a,b)=>b[1]-a[1])[0]||null;
+
+    // Build section HTML
+    const secDiv=document.createElement('div');secDiv.className='race-section';
+    secDiv.innerHTML=`
+      <div class="race-banner ${colorCls}">
+        <div>
+          <div class="race-banner-name">${esc(race.label)}</div>
+          <div class="race-banner-sub">${total} responses · ${esc(race.pattern==='full'?'Full analysis':'Search only')}</div>
+        </div>
+        <div class="race-banner-count">${total}</div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Candidate Preference — ${esc(race.label)}</div></div>
+          <div class="card-body"><div class="chart-wrap lg"><canvas id="chartRace_${ri}"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Ward-level Breakdown</div></div>
+          <div class="card-body"><div class="chart-wrap lg"><canvas id="chartRaceWard_${ri}"></canvas></div></div>
+        </div>
+      </div>
+      ${race.pattern==='full'&&candidates.length?`
+      <div class="grid-${Math.min(candidates.length,3)}" id="reasonsGrid_${ri}">
+        ${candidates.map((c,ci)=>`
+          <div class="card">
+            <div class="card-head"><div class="card-title">Reasons NOT to vote for ${esc(c.name)}</div></div>
+            <div class="card-body"><div class="chart-wrap md"><canvas id="chartReasons_${ri}_${ci}"></canvas></div></div>
+          </div>`).join('')}
+      </div>
+      <div class="grid-${Math.min(candidates.length,3)}">
+        ${candidates.map((c,ci)=>`
+          <div class="card">
+            <div class="card-head"><div class="card-title">Advice to ${esc(c.name)}</div><span class="card-badge cb-accent" id="adviceCount_${ri}_${ci}">—</span></div>
+            <div class="card-body"><div class="advice-list" id="adviceList_${ri}_${ci}"></div></div>
+          </div>`).join('')}
+      </div>`:''}
+    `;
+    root.appendChild(secDiv);
+
+    // Draw preference chart
+    const prefLabels=candNames;const prefVals=candNames.map(n=>prefCounts[n]||0);
+    if(prefLabels.length<=4){
+      drawDoughnut('chartRace_'+ri,prefLabels,prefVals,PALETTE.slice(0,prefLabels.length));
+    } else {
+      drawBar('chartRace_'+ri,prefLabels,prefVals,PALETTE,false,true);
+    }
+
+    // Ward-level stacked bar
+    buildWardBreakdownChart('chartRaceWard_'+ri,raceKey,candNames);
+
+    // Reasons against + advice per candidate
+    if(race.pattern==='full'){
+      candidates.forEach((c,ci)=>{
+        const groupKey='not_'+slug(race.id)+'_'+slug(c.name);
+        const reasonOpts=['Poor performance','Corruption','Untrustworthy','Tribal favoritism','Party affiliation','Weak leadership','No vision','Land issues','Other'];
+        const reasonCounts=countMultiField(groupKey,reasonOpts);
+        drawBar('chartReasons_'+ri+'_'+ci,reasonOpts,reasonOpts.map(o=>reasonCounts[o]||0),[C.red],false,true);
+
+        // Advice feed
+        const adviceKey='advice_'+slug(race.id)+'_'+slug(c.name);
+        const adviceTexts=FILTERED.map(d=>d[adviceKey]).filter(v=>v&&v.trim().length>2);
+        document.getElementById('adviceCount_'+ri+'_'+ci).textContent=adviceTexts.length+' messages';
+        const listEl=document.getElementById('adviceList_'+ri+'_'+ci);
+        if(!adviceTexts.length){listEl.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px;">No advice recorded yet.</div>';return;}
+        listEl.innerHTML=adviceTexts.slice(0,20).map(t=>`<div class="advice-item"><span class="advice-tag">${esc(c.name)}</span>${esc(t)}</div>`).join('');
+      });
+    }
+  });
+
+  // Ruto advice (standard across all political surveys)
+  renderRutoAdvice();
+
+  // Party + vote reasons
+  const partyList=SURVEY_META?.partyList||inferPartyList();
+  if(partyList.length){
+    document.getElementById('partySection').style.display='';
+    const partyCounts=countField('party',partyList);
+    drawBar('chartParty',partyList,partyList.map(p=>partyCounts[p]||0),PALETTE,false,true);
+    const vrOpts=['Track record','Development agenda','Trustworthy','Leadership qualities','Community connection','Proven delivery','Party affiliation','New ideas','Personal help','Other'];
+    const vrCounts=countMultiField('voteReasons',vrOpts);
+    drawBar('chartVoteReasons',vrOpts,vrOpts.map(o=>vrCounts[o]||0),[C.blue],false,true);
+  }
+}
+
+// If no RACES config loaded (legacy data), infer races from response field keys
+function inferRacesFromData(){
+  const sample=FILTERED[0]||RAW[0];if(!sample)return[];
+  const inferred=[];
+  const racePatterns=[
+    {key:'race_race_gov',     id:'race_gov',  label:'Governor',        pattern:'full'},
+    {key:'race_race_sen',     id:'race_sen',  label:'Senator',         pattern:'full'},
+    {key:'race_race_mp',      id:'race_mp',   label:'MP',              pattern:'search_only'},
+    {key:'race_race_mca',     id:'race_mca',  label:'MCA',             pattern:'search_only'},
+    {key:'race_race_ruto',    id:'race_ruto', label:'Presidential (Re-elect Ruto?)',pattern:'full'},
+    {key:'race_race_pres',    id:'race_pres', label:'President',       pattern:'full'},
+    // Legacy Embu hardcoded keys
+    {key:'governor',          id:'race_gov_legacy', label:'Governor (Embu)',  pattern:'full'},
+  ];
+  racePatterns.forEach(p=>{
+    if(FILTERED.some(d=>d[p.key]||d[p.id.replace('race_','')])){
+      // Collect unique values as candidate list
+      const vals=[...new Set(FILTERED.map(d=>d[p.key]||d[p.id.replace('race_','')]).filter(Boolean))];
+      inferred.push({...p,candidates:vals.map(v=>({name:v,tag:''}))});
+    }
+  });
+  return inferred;
+}
+
+function renderRutoAdvice(){
+  const advices=FILTERED.map(d=>d.adviceRuto).filter(v=>v&&v.trim().length>2);
+  if(!advices.length)return;
+  // Find or create a card for Ruto advice inside raceSections
+  let card=document.getElementById('rutoAdviceCard');
+  if(!card){
+    card=document.createElement('div');card.id='rutoAdviceCard';card.className='card';card.style.marginBottom='16px';
+    card.innerHTML=`<div class="card-head"><div class="card-title">Advice to President Ruto</div><span class="card-badge cb-accent" id="rutoAdviceCount">—</span></div><div class="card-body"><div class="advice-list" id="rutoAdviceList"></div></div>`;
+    document.getElementById('raceSections').appendChild(card);
+  }
+  document.getElementById('rutoAdviceCount').textContent=advices.length+' messages';
+  document.getElementById('rutoAdviceList').innerHTML=advices.slice(0,20).map(t=>`<div class="advice-item"><span class="advice-tag">Ruto</span>${esc(t)}</div>`).join('');
+}
+
+// Legacy Embu field keys for backward compatibility
+function inferPartyList(){
+  const parties=new Set(FILTERED.map(d=>d.party).filter(Boolean));
+  return parties.size?[...parties]:[];
+}
+
+/* ══════════════════════════════════════════════════════
+   WARD-LEVEL BREAKDOWN CHART
+   Stacked/grouped bar: wards on X, candidate %s stacked
+══════════════════════════════════════════════════════ */
+function buildWardBreakdownChart(canvasId,raceKey,candNames){
+  const wardMap={};
+  FILTERED.forEach(d=>{
+    const w=d.ward;if(!w)return;
+    if(!wardMap[w])wardMap[w]={};
+    const v=d[raceKey];
+    if(v&&candNames.includes(v))wardMap[w][v]=(wardMap[w][v]||0)+1;
+  });
+  const wards=Object.keys(wardMap).sort();
+  if(!wards.length||!candNames.length){
+    const c=document.getElementById(canvasId);if(c)c.parentNode.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:24px;">No ward data available.</div>';return;
+  }
+  const datasets=candNames.map((name,i)=>({
+    label:name,
+    data:wards.map(w=>wardMap[w][name]||0),
+    backgroundColor:PALETTE[i%PALETTE.length]+'cc',
+    borderColor:PALETTE[i%PALETTE.length],
+    borderWidth:1,borderRadius:3
+  }));
+  destroyChart(canvasId);
+  CHARTS[canvasId]=new Chart(document.getElementById(canvasId),{
+    type:'bar',
+    data:{labels:wards,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{color:C.muted,font:{size:10}}}},
+      scales:{
+        x:{stacked:true,ticks:{color:C.muted,font:{size:9}},grid:{color:C.border}},
+        y:{stacked:true,ticks:{color:C.muted},grid:{color:C.border}}
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   CROSS-TABS — dynamic on primary race
+══════════════════════════════════════════════════════ */
+function renderCrossTabs(){
+  // Use first full race as primary
+  const primaryRace=RACES.find(r=>r.pattern==='full')||RACES[0];
+  if(!primaryRace)return;
+  const raceKey='race_'+slug(primaryRace.id);
+  const candNames=[...new Set(FILTERED.map(d=>d[raceKey]).filter(Boolean))];
+  const title=primaryRace.label+' Preference by ';
+  document.getElementById('xtabGenderTitle').textContent=title+'Gender';
+  document.getElementById('xtabAgeTitle').textContent=title+'Age';
+  document.getElementById('xtabConstTitle').textContent=title+'Constituency';
+  document.getElementById('xtabEduTitle').textContent=title+'Education';
+  buildCrossTab('xtabGender','gender',raceKey,candNames,['Male','Female','Prefer not to say']);
+  buildCrossTab('xtabAge','age',raceKey,candNames,['18-34','35-44','45-60','61+']);
+  buildCrossTab('xtabConst','constituency',raceKey,candNames,[...new Set(FILTERED.map(d=>d.constituency).filter(Boolean))].sort());
+  buildCrossTab('xtabEdu','education',raceKey,candNames,['None','Primary','Secondary','College','University']);
+}
+
+function buildCrossTab(tableId,groupField,raceKey,candNames,groups){
+  const el=document.getElementById(tableId);if(!el)return;
+  if(!candNames.length){el.innerHTML='<tr><td style="color:var(--muted);padding:16px;font-size:12px;">No race data yet.</td></tr>';return;}
+  const disp=candNames.slice(0,4); // max 4 candidates for readability
+  let html=`<thead><tr><th>${groupField}</th>${disp.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+  groups.forEach(g=>{
+    const rows=FILTERED.filter(d=>d[groupField]===g);const tot=rows.length;if(!tot)return;
+    const counts=disp.map(c=>rows.filter(d=>d[raceKey]===c).length);
+    const maxC=Math.max(...counts,1);
+    html+=`<tr><td class="main">${esc(g)}</td>`;
+    counts.forEach((cnt,i)=>{
+      const p=tot?Math.round(cnt/tot*100):0;
+      const pbCls=p>=50?'pb-high':p>=25?'pb-mid':'pb-low';
+      html+=`<td><div class="xtab-cell"><span class="pct-badge ${pbCls}">${p}%</span><div class="xtab-bar" style="width:${Math.round(cnt/maxC*80)}px"></div></div><div style="font-size:10px;color:var(--muted2);margin-top:2px;">${cnt}</div></td>`;
+    });
+    html+=`<td style="color:var(--muted);font-size:11px;">${tot}</td></tr>`;
+  });
+  el.innerHTML=html+'</tbody>';
+}
+
+/* ══════════════════════════════════════════════════════
+   DATA HELPERS
+══════════════════════════════════════════════════════ */
+function countField(key,options){
+  const counts={};options.forEach(o=>counts[o]=0);
+  FILTERED.forEach(d=>{const v=d[key];if(v!==undefined&&counts[v]!==undefined)counts[v]++;});
+  return counts;
+}
+function countMultiField(key,options){
+  const counts={};options.forEach(o=>counts[o]=0);
+  FILTERED.forEach(d=>{
+    const v=d[key];
+    if(Array.isArray(v))v.forEach(i=>{if(counts[i]!==undefined)counts[i]++;});
+    else if(v&&counts[v]!==undefined)counts[v]++;
+  });
+  return counts;
+}
+function slug(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');}
+
+/* ══════════════════════════════════════════════════════
+   CHART COLOURS
+══════════════════════════════════════════════════════ */
+const C={
+  blue:'rgba(45,212,191,.85)',
+  green:'rgba(74,222,128,.85)',
+  amber:'rgba(251,191,36,.85)',
+  red:'rgba(248,113,113,.85)',
+  purple:'rgba(129,140,248,.85)',
+  pink:'rgba(244,114,182,.85)',
+  gold:'rgba(200,150,62,.85)',
+  orange:'rgba(251,146,60,.85)',
+  muted:'#6a9490',
+  border:'rgba(31,46,51,.8)'
+};
+const PALETTE=[C.blue,C.gold,C.green,C.purple,C.amber,C.red,C.pink,C.orange];
+
+const CHART_DEFAULTS={
+  responsive:true,maintainAspectRatio:false,
+  plugins:{
+    legend:{position:'bottom',labels:{color:C.muted,font:{size:11},boxWidth:12,padding:12}},
+    tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed.y??ctx.parsed+' ('+pct(ctx.parsed.y??ctx.parsed,ctx.dataset.data.reduce((a,b)=>a+b,0))+'%)'}}
+  }
+};
+function pct(n,t){return t?Math.round(n/t*100):0;}
+
+function destroyChart(id){if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}}
+
+function drawDoughnut(id,labels,data,colors){
+  destroyChart(id);
+  const el=document.getElementById(id);if(!el)return;
+  CHARTS[id]=new Chart(el,{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#0d1214',hoverOffset:6}]},
+    options:{...CHART_DEFAULTS,cutout:'62%',plugins:{...CHART_DEFAULTS.plugins,tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+ctx.raw+' ('+pct(ctx.raw,ctx.dataset.data.reduce((a,b)=>a+b,0))+'%)'}}}}
+  });
+}
+
+function drawBar(id,labels,data,colors,horizontal=false,indexAxis=false){
+  destroyChart(id);
+  const el=document.getElementById(id);if(!el)return;
+  const axis=indexAxis?'y':'x';
+  CHARTS[id]=new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:data.map((_,i)=>colors[i%colors.length]),borderRadius:4,borderSkipped:false}]},
+    options:{
+      ...CHART_DEFAULTS,
+      indexAxis:axis,
+      plugins:{...CHART_DEFAULTS.plugins,legend:{display:false}},
+      scales:{
+        x:{ticks:{color:C.muted,font:{size:10}},grid:{color:C.border}},
+        y:{ticks:{color:C.muted,font:{size:10}},grid:{color:C.border}}
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   EXPORT
+══════════════════════════════════════════════════════ */
+function exportCSV(){
+  if(!FILTERED.length)return toast('No data to export','err');
+  const keys=[...new Set(FILTERED.flatMap(d=>Object.keys(d)))].filter(k=>!k.startsWith('_')||['_submittedAt','_respondentId'].includes(k));
+  const rows=[keys.map(k=>'"'+k+'"').join(','),...FILTERED.map(d=>keys.map(k=>'"'+(d[k]!==undefined?String(d[k]).replace(/"/g,'""'):'')+'\"').join(','))];
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(SURVEY_ID||'survey')+'_analytics_'+stamp()+'.csv';a.click();
+  toast('✓ CSV exported','ok');
+}
+
+async function exportPDF(){
+  if(!FILTERED.length)return toast('No data','err');
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF('p','mm','a4');
+  const title=(SURVEY_META?.name||SURVEY_ID||'Survey')+' — Analytics Report';
+  const subtitle=(SURVEY_META?.county||'')+' · Generated '+new Date().toLocaleDateString('en-KE',{year:'numeric',month:'long',day:'numeric'});
+  doc.setFillColor(26,74,42);doc.rect(0,0,210,40,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont('helvetica','bold');
+  doc.text(title,14,18);doc.setFontSize(10);doc.setFont('helvetica','normal');
+  doc.text(subtitle,14,28);doc.text('Total responses: '+FILTERED.length,14,36);
+  doc.setTextColor(30,30,30);let y=52;
+  const addSection=(heading)=>{
+    if(y>250){doc.addPage();y=20;}
+    doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(26,74,42);
+    doc.text(heading,14,y);y+=8;
+    doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);
+  };
+  addSection('Demographics');
+  [['Gender',countField('gender',['Male','Female','Prefer not to say'])],
+   ['Age',countField('age',['18-34','35-44','45-60','61+'])],
+   ['Employment',countField('employment',['Employed','Self-Employed','Unemployed'])]].forEach(([label,counts])=>{
+    const rows=Object.entries(counts).filter(([,v])=>v>0).map(([k,v])=>[k,v,pct(v,FILTERED.length)+'%']);
+    doc.autoTable({startY:y,head:[[label,'Count','%']],body:rows,theme:'grid',styles:{fontSize:9},headStyles:{fillColor:[45,122,69],textColor:255},margin:{left:14,right:14}});
+    y=doc.lastAutoTable.finalY+8;
+  });
+  // Race tables
+  RACES.filter(r=>r.pattern==='full').forEach(race=>{
+    const raceKey='race_'+slug(race.id);
+    const counts={};FILTERED.forEach(d=>{const v=d[raceKey];if(v)counts[v]=(counts[v]||0)+1;});
+    const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,pct(v,FILTERED.length)+'%']);
+    if(rows.length){addSection(race.label+' — Preference');doc.autoTable({startY:y,head:[['Candidate','Responses','%']],body:rows,theme:'grid',styles:{fontSize:9},headStyles:{fillColor:[45,122,69],textColor:255},margin:{left:14,right:14}});y=doc.lastAutoTable.finalY+8;}
+  });
+  doc.save((SURVEY_ID||'survey')+'_report_'+stamp()+'.pdf');
+  toast('✓ PDF report exported','ok');
+}
+
+/* ══════════════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════════════ */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function stamp(){return new Date().toISOString().slice(0,10);}
+function goOps(){if(SURVEY_ID)window.location.href='operations.html?survey='+SURVEY_ID;}
+function showLoader(msg){const l=document.getElementById('globalLoader');l.classList.add('show');document.getElementById('loaderMsg').textContent=msg||'Loading…';}
+function hideLoader(){document.getElementById('globalLoader').classList.remove('show');}
+let _tt;function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(type?' '+type:'');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3200);}
+</script>
+</body>
+</html>
