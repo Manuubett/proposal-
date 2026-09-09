@@ -84,8 +84,9 @@ button{cursor:pointer}
 .offline{background:#fff1df;color:#8a5a16}
 .table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px;border-bottom:1px solid var(--warm);text-align:left}.table th{font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.5px}
 .mobile-menu{display:none}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:#10201666;z-index:9}
 @media(max-width:1000px){.sidebar{width:205px}.main{margin-left:205px}.stats{grid-template-columns:repeat(2,1fr)}.grid,.grid3{grid-template-columns:1fr}}
-@media(max-width:700px){.sidebar{transform:translateX(-100%);transition:.2s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.mobile-menu{display:block}.topbar{padding:0 15px}.content{padding:18px 15px}.stats{grid-template-columns:1fr 1fr}.top-actions .btn{display:none}.top-actions .status{display:block}}
+@media(max-width:700px){.sidebar{transform:translateX(-100%);transition:.22s ease}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.mobile-menu{display:block}.topbar{padding:0 15px}.content{padding:18px 15px}.stats{grid-template-columns:1fr 1fr}.top-actions .btn{display:none}.top-actions .status{display:block}.sidebar-backdrop.show{display:block}.searchbox input{font-size:16px}.visit-form input,.visit-form select,.visit-form textarea{font-size:16px}.form-field input,.form-field select,.form-field textarea{font-size:16px}button,.nav button,.btn{touch-action:manipulation}}
 
 .location-profile-top{display:flex;gap:9px;justify-content:flex-end;margin-bottom:14px;flex-wrap:wrap}
 .location-hero{margin-bottom:17px}
@@ -145,15 +146,14 @@ button{cursor:pointer}
     </form>
     <div class="auth-toggle" id="authToggleText">Don't have an account? <a onclick="setAuthMode('signup')">Create one</a></div>
 
-    <div class="auth-divider"><div class="line"></div>OR<div class="line"></div></div>
-
-    <button class="google" id="loginBtn" onclick="signIn()">Continue with Google</button>
     <div class="err" id="loginErr"></div>
     <div class="ok-msg" id="loginOk"></div>
   </div>
 </div>
+<div id="sessionCheck" style="position:fixed;inset:0;background:var(--forest);z-index:51;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Fraunces;font-size:15px">Loading…</div>
 
 <div id="app">
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleMenu(false)"></div>
   <aside class="sidebar" id="sidebar">
     <div class="brand"><div class="brand-icon">CI</div><div><strong>Community Intelligence</strong><small>Field intelligence platform</small></div></div>
     <div class="nav-label">Workspace</div>
@@ -176,6 +176,7 @@ button{cursor:pointer}
     </div>
     <div class="sidebar-bottom">
       <div class="user"><img class="avatar" id="userAvatar"><div><strong id="userName">User</strong><br><span id="syncText">Connecting…</span></div></div>
+      <div style="margin-top:10px"><a onclick="offerLinkPassword()" id="accountPanelText" style="color:#b8c8bd;font-size:11px;cursor:pointer;text-decoration:underline">Update password</a></div>
     </div>
   </aside>
 
@@ -455,6 +456,13 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore(),auth=firebase.auth();
+/* Ensure the session survives app restarts / page reloads (important inside
+   a wrapped app's WebView, where storage behavior can otherwise be less
+   predictable than a normal browser tab). This must be set before any
+   sign-in call; Firebase then remembers the session in IndexedDB/localStorage
+   and onAuthStateChanged will fire with the existing user on next launch
+   without asking them to log in again. */
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.warn("Persistence setup failed:",e.message));
 
 const ADMIN_EMAILS=[
  "admin@visiontrack.co.ke","supervisor@embu.go.ke","bettemanuel49@gmail.com",
@@ -575,7 +583,21 @@ function emailSignUp(){
  if(password.length<6){errEl.textContent="Password should be at least 6 characters.";errEl.style.display="block";return}
  const btn=document.getElementById("authSubmitBtn");btn.disabled=true;
  auth.createUserWithEmailAndPassword(email,password)
-  .catch(e=>{errEl.textContent=friendlyAuthError(e);errEl.style.display="block";})
+  .catch(async e=>{
+   if(e.code==="auth/email-already-in-use"){
+    try{
+     const methods=await auth.fetchSignInMethodsForEmail(email);
+     if(methods.includes("google.com")&&!methods.includes("password")){
+      errEl.textContent="This email is registered via Google sign-in, which isn't available in this app. Please contact an administrator to have a password added to your account.";
+     }else{
+      errEl.textContent="That email is already registered — try signing in instead.";
+     }
+    }catch(_){errEl.textContent=friendlyAuthError(e);}
+   }else{
+    errEl.textContent=friendlyAuthError(e);
+   }
+   errEl.style.display="block";
+  })
   .finally(()=>{btn.disabled=false;});
 }
 
@@ -591,7 +613,7 @@ function resetPassword(){
 
 function friendlyAuthError(e){
  const map={
-  "auth/email-already-in-use":"That email is already registered — try signing in instead.",
+  "auth/email-already-in-use":"That email is already registered. If you originally signed in with Google, sign in with Google and then use \"Set/Update password\" to add a password to that account.",
   "auth/invalid-email":"That doesn't look like a valid email address.",
   "auth/weak-password":"Password should be at least 6 characters.",
   "auth/wrong-password":"Incorrect password.",
@@ -611,8 +633,12 @@ function signIn(){
   document.getElementById("loginBtn").disabled=false;
  });
 }
+function signInThenOfferLink(){
+ signIn();
+}
 async function signOut(){await auth.signOut()}
 auth.onAuthStateChanged(async user=>{
+ document.getElementById("sessionCheck").style.display="none";
  if(!user){document.getElementById("loginWall").style.display="flex";document.getElementById("app").style.display="none";return}
  const email=(user.email||"").toLowerCase();
  if(!ADMIN_EMAILS.includes(email)){
@@ -622,8 +648,50 @@ auth.onAuthStateChanged(async user=>{
  document.getElementById("userName").textContent=user.displayName||user.email;
  if(user.photoURL)document.getElementById("userAvatar").src=user.photoURL;
  document.getElementById("visitDate").value=new Date().toISOString().slice(0,10);
- renderGreeting();renderAdmin();loadData();
+ renderGreeting();renderAdmin();renderAccountPanel();loadData();
 });
+
+/* ---------- Link a password to the currently signed-in account ---------- */
+function hasPasswordProvider(){
+ const u=auth.currentUser;if(!u)return false;
+ return u.providerData.some(p=>p.providerId==="password");
+}
+function renderAccountPanel(){
+ const el=document.getElementById("accountPanelText");if(!el)return;
+ el.textContent=hasPasswordProvider()?"Update password":"Set a password (for app sign-in)";
+}
+function offerLinkPassword(){
+ if(!auth.currentUser){toast("Please sign in first.");return}
+ const alreadyHasPassword=hasPasswordProvider();
+ openModal({
+  title:alreadyHasPassword?"Update your password":"Set a password for this account",
+  fields:[
+   {name:"password",label:"New password",placeholder:"At least 6 characters",required:true},
+   {name:"confirm",label:"Confirm password",placeholder:"Re-enter password",required:true}
+  ],
+  onSave(v){
+   if(v.password.length<6){toast("Password should be at least 6 characters.");return}
+   if(v.password!==v.confirm){toast("Passwords do not match.");return}
+   const cred=firebase.auth.EmailAuthProvider.credential(auth.currentUser.email,v.password);
+   const finish=()=>{toast("Password saved. You can now sign in on the login screen with email + password.");renderAccountPanel();};
+   if(alreadyHasPassword){
+    auth.currentUser.updatePassword(v.password).then(finish).catch(e=>{
+     if(e.code==="auth/requires-recent-login"){
+      toast("For security, please sign out and sign in again before changing your password.");
+     }else{toast(friendlyAuthError(e));}
+    });
+   }else{
+    auth.currentUser.linkWithCredential(cred).then(finish).catch(e=>{
+     if(e.code==="auth/provider-already-linked"||e.code==="auth/credential-already-in-use"){
+      toast("This account already has a password set. Use \"Forgot password?\" on the login screen to reset it.");
+     }else{
+      toast(friendlyAuthError(e));
+     }
+    });
+   }
+  }
+ });
+}
 
 /* ---------- Greeting ---------- */
 function greetingPhrase(){
@@ -833,7 +901,8 @@ function fieldHtml(f){
  if(f.type==="textarea"){
   return `<div class="form-field full"><label for="${id}">${esc(f.label)}</label><textarea id="${id}" placeholder="${escAttr(f.placeholder||"")}">${esc(f.value||"")}</textarea></div>`;
  }
- return `<div class="form-field${f.full?" full":""}"><label for="${id}">${esc(f.label)}</label><input id="${id}" type="text" value="${escAttr(f.value||"")}" placeholder="${escAttr(f.placeholder||"")}"></div>`;
+ const inputType=f.inputType||"text";
+ return `<div class="form-field${f.full?" full":""}"><label for="${id}">${esc(f.label)}</label><input id="${id}" type="${inputType}" value="${escAttr(f.value||"")}" placeholder="${escAttr(f.placeholder||"")}"></div>`;
 }
 function openModal({title,fields,onSave}){
  document.getElementById("modalTitle").textContent=title;
@@ -1017,9 +1086,13 @@ function showView(name,btn){
  research:["Survey Analytics","The research layer behind the operational platform."],admin:["Administration","Access, architecture and operational health."]
  };
  document.getElementById("pageTitle").textContent=titles[name]?.[0]||name;document.getElementById("pageSub").textContent=titles[name]?.[1]||"";
- document.getElementById("sidebar").classList.remove("open");
+ toggleMenu(false);
 }
-function toggleMenu(){document.getElementById("sidebar").classList.toggle("open")}
+function toggleMenu(force){
+ const sb=document.getElementById("sidebar"),bd=document.getElementById("sidebarBackdrop");
+ const open=typeof force==="boolean"?force:!sb.classList.contains("open");
+ sb.classList.toggle("open",open);bd.classList.toggle("show",open);
+}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escAttr(s){return esc(s)}
 
