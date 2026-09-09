@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Intelligence</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --ink:#102016;--forest:#174d2b;--leaf:#2f855a;--mint:#72c28a;
+  --cream:#f6f4ee;--card:#fff;--warm:#eee9df;--border:#ddd6ca;
+  --gold:#c8963e;--gold-l:#fff7e7;--red:#b83b3b;--red-l:#fff0f0;
+  --blue:#2563a8;--blue-l:#eff6ff;--muted:#746e64;--shadow:0 8px 28px rgba(16,32,22,.07);
+  --r:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:"DM Sans",sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+#loginWall{position:fixed;inset:0;background:linear-gradient(135deg,var(--forest),#0d2d1b);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:min(410px,92%);background:#fff;border-radius:22px;padding:38px;box-shadow:0 30px 90px #0005;text-align:center;max-height:92vh;overflow:auto}
+.logo{width:58px;height:58px;border-radius:16px;background:var(--forest);color:#fff;display:grid;place-items:center;font-family:Fraunces;font-size:21px;margin:auto auto 16px}
+.login-card h1{font-family:Fraunces;margin:0 0 6px}.login-card p{color:var(--muted);font-size:13px;margin:0 0 24px}
+.google{width:100%;padding:13px;border:1px solid var(--border);background:#fff;border-radius:10px;font-weight:700}
+.err{display:none;background:var(--red-l);color:var(--red);padding:10px;margin-top:12px;border-radius:8px;font-size:12px;text-align:left}
+.ok-msg{display:none;background:#edf8f0;color:var(--forest);padding:10px;margin-top:12px;border-radius:8px;font-size:12px;text-align:left}
+.auth-form{display:grid;gap:10px;text-align:left;margin-bottom:6px}
+.auth-field{display:grid;gap:5px}
+.auth-field label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.auth-field input{border:1px solid var(--border);border-radius:9px;padding:11px;background:#fff;outline:0;width:100%}
+.auth-actions{display:flex;gap:8px;margin-top:2px}
+.auth-actions .btn{flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:700}
+.auth-actions .btn.primary{background:var(--forest);border-color:var(--forest);color:#fff}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--muted);font-size:11px}
+.auth-divider .line{flex:1;height:1px;background:var(--border)}
+.auth-toggle{font-size:12px;color:var(--muted);margin-top:14px}
+.auth-toggle a{color:var(--forest);font-weight:700;cursor:pointer;text-decoration:none}
+.forgot-link{font-size:11px;color:var(--muted);text-align:right;margin-top:-4px;cursor:pointer;text-decoration:underline}
+
+#app{display:none;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:238px;background:#10271a;color:#fff;padding:22px 14px;z-index:10}
+.brand{display:flex;gap:10px;align-items:center;padding:4px 10px 25px}
+.brand-icon{width:39px;height:39px;border-radius:11px;background:var(--gold);color:var(--ink);display:grid;place-items:center;font-weight:800}
+.brand strong{font-family:Fraunces;font-size:17px}.brand small{display:block;color:#9db0a2;font-size:10px;margin-top:2px}
+.nav-label{color:#71877a;font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:0 11px;margin:13px 0 7px}
+.nav button{width:100%;border:0;background:transparent;color:#b8c8bd;text-align:left;padding:10px 11px;border-radius:9px;margin:2px 0}
+.nav button:hover,.nav button.active{background:#214c31;color:#fff}.nav button span{display:inline-block;width:25px}
+.sidebar-bottom{position:absolute;bottom:18px;left:14px;right:14px;border-top:1px solid #ffffff18;padding-top:13px;font-size:11px;color:#84988b}
+.user{display:flex;gap:8px;align-items:center}.avatar{width:29px;height:29px;border-radius:50%;object-fit:cover;background:#315c40}
+
+.main{margin-left:238px}
+.topbar{height:68px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:sticky;top:0;z-index:8}
+.top-title h2{margin:0;font-family:Fraunces;font-size:21px}.top-title p{margin:3px 0 0;color:var(--muted);font-size:11px}
+.top-actions{display:flex;gap:9px;align-items:center}.status{font-size:11px;padding:7px 11px;border-radius:20px;background:#eef8f1;color:var(--forest);font-weight:700}
+.btn{border:1px solid var(--border);background:#fff;border-radius:9px;padding:8px 12px;font-weight:600;color:var(--ink)}.btn.primary{background:var(--forest);border-color:var(--forest);color:#fff}.btn.gold{background:var(--gold);border-color:var(--gold)}
+.content{padding:26px 30px 50px;max-width:1500px}
+.view{display:none}.view.active{display:block}
+.search-hero{background:linear-gradient(135deg,var(--forest),#2a6943);border-radius:18px;padding:25px;color:#fff;margin-bottom:20px}
+.search-hero h1{font-family:Fraunces;font-size:27px;margin:0 0 5px}.search-hero p{color:#c8dbcf;font-size:13px;margin:0 0 18px}
+.searchbox{display:flex;max-width:750px;background:#fff;border-radius:11px;overflow:hidden}.searchbox input{border:0;outline:0;flex:1;padding:14px;font-size:14px}.searchbox button{border:0;background:var(--gold);padding:0 20px;font-weight:800}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:20px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:13px;padding:17px;box-shadow:var(--shadow)}
+.stat .icon{font-size:18px}.stat .num{font-size:27px;font-weight:700;margin-top:8px}.stat .label{font-size:11px;color:var(--muted);margin-top:2px}
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:17px;margin-bottom:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:16px 18px 11px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #f0ece5}
+.card-head h3{margin:0;font-size:14px}.card-head p{margin:3px 0 0;color:var(--muted);font-size:11px}.card-body{padding:15px 18px}
+.issue{padding:12px 0;border-bottom:1px solid var(--warm);display:flex;gap:11px;align-items:center}.issue:last-child{border:0}.rank{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:#fff;font-size:11px;font-weight:700}.issue-main{flex:1}.issue-main strong{font-size:13px}.issue-main small{display:block;color:var(--muted);margin-top:3px}.badge{padding:4px 8px;border-radius:20px;font-size:10px;font-weight:700}.high{background:var(--red-l);color:var(--red)}.medium{background:var(--gold-l);color:#94651b}.low{background:#edf8f0;color:var(--forest)}
+.area{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--warm)}.area:last-child{border:0}.area strong{font-size:13px}.area small{color:var(--muted)}
+.empty{padding:25px;text-align:center;color:var(--muted);font-size:12px}.muted{color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:var(--warm);border-radius:20px;font-size:10px;font-weight:700}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:17px}.toolbar input,.toolbar select{border:1px solid var(--border);background:#fff;border-radius:9px;padding:9px 11px;outline:0}
+.location-card{padding:20px}.location-card h2{font-family:Fraunces;margin:0;font-size:25px}.location-meta{color:var(--muted);font-size:12px;margin:4px 0 15px}
+.issue-detail{border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:10px}.issue-detail header{display:flex;justify-content:space-between}.issue-detail p{font-size:12px;line-height:1.6;color:var(--muted);margin:9px 0}
+.visit-form{display:grid;gap:12px}.visit-form input,.visit-form select,.visit-form textarea{width:100%;border:1px solid var(--border);border-radius:9px;padding:10px;background:#fff;outline:0}.visit-form textarea{min-height:110px;resize:vertical}
+.notice{padding:11px 13px;border-radius:9px;background:var(--blue-l);color:var(--blue);font-size:11px;margin-bottom:13px}
+.offline{background:#fff1df;color:#8a5a16}
+.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px;border-bottom:1px solid var(--warm);text-align:left}.table th{font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.5px}
+.mobile-menu{display:none}
+@media(max-width:1000px){.sidebar{width:205px}.main{margin-left:205px}.stats{grid-template-columns:repeat(2,1fr)}.grid,.grid3{grid-template-columns:1fr}}
+@media(max-width:700px){.sidebar{transform:translateX(-100%);transition:.2s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.mobile-menu{display:block}.topbar{padding:0 15px}.content{padding:18px 15px}.stats{grid-template-columns:1fr 1fr}.top-actions .btn{display:none}.top-actions .status{display:block}}
+
+.location-profile-top{display:flex;gap:9px;justify-content:flex-end;margin-bottom:14px;flex-wrap:wrap}
+.location-hero{margin-bottom:17px}
+.location-hero-inner{padding:24px;display:flex;justify-content:space-between;gap:20px;align-items:center}
+.location-hero h1{font-family:Fraunces;font-size:31px;margin:10px 0 2px}
+.location-hero .location-meta{margin:0 0 8px}
+.location-last-visit{min-width:150px;text-align:right;border-left:1px solid var(--border);padding-left:22px}
+.location-last-visit small{display:block;color:var(--muted);font-size:9px;letter-spacing:1px;font-weight:700}
+.location-last-visit strong{display:block;margin-top:6px;font-size:12px}
+.voice{border-left:3px solid var(--gold);padding:9px 12px;margin:0 0 9px;background:#fffcf5;border-radius:0 8px 8px 0;font-size:12px;line-height:1.55}
+.theme-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--warm)}
+.theme-row:last-child{border:0}
+.theme-bar{height:7px;border-radius:10px;background:var(--forest);opacity:.8;min-width:8px}
+.theme-count{font-weight:800;font-size:12px;min-width:38px;text-align:right}
+.mini-meta{font-size:10px;color:var(--muted);margin-top:3px}
+@media(max-width:700px){.location-hero-inner{display:block}.location-last-visit{text-align:left;border-left:0;border-top:1px solid var(--border);margin-top:15px;padding:13px 0 0}}
+@media print{.sidebar,.topbar,.location-profile-top{display:none!important}.main{margin-left:0}.content{padding:15px}.view{display:none!important}.view.active{display:block!important}.card{box-shadow:none;break-inside:avoid}}
+
+.toast{position:fixed;right:20px;bottom:20px;background:#10271a;color:#fff;padding:12px 15px;border-radius:10px;box-shadow:0 10px 30px #0003;z-index:100;font-size:12px;display:none;max-width:360px}
+.modal-backdrop{position:fixed;inset:0;background:#10201699;z-index:80;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(620px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;box-shadow:0 30px 90px #0005}.modal-head{padding:17px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}.modal-head h3{margin:0;font-family:Fraunces}.modal-body{padding:20px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-field{display:grid;gap:5px}.form-field.full{grid-column:1/-1}.form-field label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}.form-field input,.form-field select,.form-field textarea{border:1px solid var(--border);border-radius:9px;padding:10px;background:#fff;outline:0}.form-field textarea{min-height:90px;resize:vertical}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.metric-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:17px}.metric-mini{background:#fff;border:1px solid var(--border);border-radius:11px;padding:12px}.metric-mini strong{font-size:18px;display:block}.metric-mini small{font-size:9px;color:var(--muted)}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px}.tab{border:1px solid var(--border);background:#fff;border-radius:20px;padding:7px 11px;font-size:11px;font-weight:700}.tab.active{background:var(--forest);color:#fff;border-color:var(--forest)}
+.section-note{font-size:11px;color:var(--muted);line-height:1.6}.progress{height:7px;background:var(--warm);border-radius:10px;overflow:hidden}.progress>i{display:block;height:100%;background:var(--forest);border-radius:10px}
+.priority-card{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:9px}.priority-card header{display:flex;justify-content:space-between;gap:10px}.priority-card p{font-size:11px;color:var(--muted);line-height:1.55;margin:8px 0}.priority-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.map-placeholder{min-height:330px;border-radius:13px;background:linear-gradient(135deg,#e8efe9,#f5f0e5);display:grid;place-items:center;text-align:center;padding:30px;border:1px dashed #c9c0b2}.map-placeholder strong{font-family:Fraunces;font-size:24px}.map-placeholder p{color:var(--muted);font-size:12px;max-width:450px}
+.visit-mode{background:#10271a;color:#fff;border-radius:16px;padding:20px;margin-bottom:17px}.visit-mode h2{font-family:Fraunces;margin:0 0 4px}.visit-mode p{color:#b8c8bd;font-size:11px}.priority-check{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.priority-check label{background:#214c31;padding:8px 10px;border-radius:9px;font-size:11px}.priority-check input{accent-color:var(--gold)}
+.evidence-list{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.evidence{border:1px dashed var(--border);border-radius:10px;padding:13px;text-align:center;font-size:11px;color:var(--muted)}
+.audit{font-size:10px;color:var(--muted);border-top:1px solid var(--warm);padding-top:8px;margin-top:8px}
+@media(max-width:1000px){.metric-strip{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}.form-field.full{grid-column:auto}.metric-strip{grid-template-columns:1fr 1fr}.evidence-list{grid-template-columns:1fr}.modal{max-height:95vh}}
+@media print{.sidebar,.topbar,.location-profile-top,.no-print{display:none!important}.main{margin-left:0}.content{padding:15px}.view{display:none!important}.view.active{display:block!important}.card{box-shadow:none;break-inside:avoid}}
+</style>
+
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Community%20Intelligence%22%2C%22short_name%22%3A%22Community%20Intelligence%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%7D">
+</head>
+<body>
+
+<div id="loginWall">
+  <div class="login-card">
+    <div class="logo">CI</div>
+    <h1>Community Intelligence</h1>
+    <p>Community issues · field visits · projects · follow-ups</p>
+
+    <form class="auth-form" id="authForm" onsubmit="return false;">
+      <div class="auth-field">
+        <label for="authEmail">Email</label>
+        <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="auth-field">
+        <label for="authPassword">Password</label>
+        <input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <div class="forgot-link" onclick="resetPassword()">Forgot password?</div>
+      <div class="auth-actions">
+        <button type="button" class="btn primary" id="authSubmitBtn" onclick="handleAuthSubmit()">Sign in</button>
+      </div>
+    </form>
+    <div class="auth-toggle" id="authToggleText">Don't have an account? <a onclick="setAuthMode('signup')">Create one</a></div>
+
+    <div class="auth-divider"><div class="line"></div>OR<div class="line"></div></div>
+
+    <button class="google" id="loginBtn" onclick="signIn()">Continue with Google</button>
+    <div class="err" id="loginErr"></div>
+    <div class="ok-msg" id="loginOk"></div>
+  </div>
+</div>
+
+<div id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-icon">CI</div><div><strong>Community Intelligence</strong><small>Field intelligence platform</small></div></div>
+    <div class="nav-label">Workspace</div>
+    <div class="nav">
+      <button class="active" onclick="showView('dashboard',this)"><span>⌂</span>Dashboard</button>
+      <button onclick="showView('locations',this)"><span>⌖</span>Locations</button>
+      <button onclick="showView('issues',this)"><span>!</span>Issues</button>
+      <button onclick="showView('projects',this)"><span>▣</span>Projects</button>
+      <button onclick="showView('visits',this)"><span>➜</span>Visits</button>
+      <button onclick="showView('followups',this)"><span>✓</span>Follow-ups</button>
+      <button onclick="showView('priorities',this)"><span>★</span>Priority Queue</button>
+      <button onclick="showView('invitations',this)"><span>✉</span>Invitation Tracker</button>
+      <button onclick="showView('map',this)"><span>◎</span>Map</button>
+      <button onclick="showView('reports',this)"><span>▤</span>Reports</button>
+    </div>
+    <div class="nav-label">Research</div>
+    <div class="nav">
+      <button onclick="showView('research',this)"><span>◫</span>Survey Analytics</button>
+       <button onclick="showView('admin',this)"><span>⚙</span>Administration</button>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user"><img class="avatar" id="userAvatar"><div><strong id="userName">User</strong><br><span id="syncText">Connecting…</span></div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-title">
+        <button class="btn mobile-menu" onclick="toggleMenu()">☰</button>
+        <span style="margin-left:7px"><h2 id="pageTitle" style="display:inline">Dashboard</h2><p id="pageSub">What is happening on the ground right now?</p></span>
+      </div>
+      <div class="top-actions">
+        <span class="status" id="networkStatus">● Online</span>
+        <button class="btn" onclick="loadData()">↻ Refresh</button>
+        <button class="btn gold" onclick="showView('visits')">+ Record Visit</button>
+        <button class="btn" onclick="signOut()">Sign out</button>
+      </div>
+    </header>
+
+    <section class="content">
+
+      <div class="view active" id="view-dashboard">
+        <div class="search-hero">
+          <h1 id="greetingText">Good day.</h1>
+          <p id="greetingSub">Where are you going today? Search a ward, constituency or community location to see reported issues, feedback, projects and follow-ups.</p>
+          <div class="searchbox"><input id="globalSearch" placeholder="Try: Muminji, Mbeere North, water, roads…" onkeydown="if(event.key==='Enter')searchLocation()"><button onclick="searchLocation()">Search</button></div>
+          <button class="btn" style="margin-top:10px;background:transparent;border-color:#ffffff40;color:#fff" onclick="detectLocation('dashboard')">📍 Detect my current ward</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="icon">⚠️</div><div class="num" id="statIssues">—</div><div class="label">Community issues</div></div>
+          <div class="stat"><div class="icon">🔴</div><div class="num" id="statHigh">—</div><div class="label">High-priority issues</div></div>
+          <div class="stat"><div class="icon">✓</div><div class="num" id="statFollow">—</div><div class="label">Pending follow-ups</div></div>
+          <div class="stat"><div class="icon">📍</div><div class="num" id="statVisits">—</div><div class="label">Recorded visits</div></div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="card-head"><div><h3>Top community concerns</h3><p>Derived from existing survey responses</p></div><span class="pill">Live dataset</span></div>
+            <div class="card-body" id="topIssues"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>Areas needing attention</h3><p>Based on issue volume in current data</p></div></div>
+            <div class="card-body" id="attentionAreas"></div>
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="card"><div class="card-head"><div><h3>Latest visits</h3><p>Field activity</p></div></div><div class="card-body" id="latestVisits"></div></div>
+          <div class="card"><div class="card-head"><div><h3>Pending follow-ups</h3><p>Items requiring action</p></div></div><div class="card-body" id="latestFollowups"></div></div>
+          <div class="card"><div class="card-head"><div><h3>System principle</h3><p>How Community Intelligence works</p></div></div><div class="card-body"><p style="font-size:13px;line-height:1.7;margin:0"><strong>Location → Issue → Voice → Action → Follow-up.</strong><br><br>The dashboard converts community feedback into field-ready intelligence without exposing individual respondent contact details.</p></div></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-locations">
+        <div class="toolbar"><input id="locationFilter" placeholder="Search locations…" oninput="renderLocations()"><select id="wardFilter" onchange="renderLocations()"><option value="">All wards</option></select></div>
+        <div class="grid3" id="locationGrid"></div>
+      </div>
+
+
+      <div class="view" id="view-location">
+        <div class="location-profile-top">
+          <button class="btn" onclick="showView('locations')">← Back to Locations</button>
+          <button class="btn gold" onclick="printLocationBrief()">Print Brief</button>
+          <button class="btn primary" onclick="startVisitFromLocation()">▶ Start Visit</button>
+        </div>
+        <div class="location-hero card">
+          <div class="location-hero-inner">
+            <div>
+              <span class="pill" id="locationCoverage">Survey coverage</span>
+              <h1 id="profileName">Location</h1>
+              <p id="profileMeta" class="location-meta">Constituency · responses</p>
+              <p id="profileNote" class="muted">Community intelligence for this area.</p>
+            </div>
+            <div class="location-last-visit">
+              <small>LAST VISIT</small>
+              <strong id="profileLastVisit">No visit recorded</strong>
+            </div>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="icon">📊</div><div class="num" id="profileResponses">—</div><div class="label">Survey reports</div></div>
+          <div class="stat"><div class="icon">⚠️</div><div class="num" id="profileIssues">—</div><div class="label">Operational issues</div></div>
+          <div class="stat"><div class="icon">✓</div><div class="num" id="profileFollowups">—</div><div class="label">Pending follow-ups</div></div>
+          <div class="stat"><div class="icon">📍</div><div class="num" id="profileVisits">—</div><div class="label">Field visits</div></div>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="card-head"><div><h3>Top community concerns</h3><p>Patterns from the existing survey data</p></div></div>
+            <div class="card-body" id="profileConcerns"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>Community voice</h3><p>Aggregated advice and observations — no contact details</p></div></div>
+            <div class="card-body" id="profileVoice"></div>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="card-head"><div><h3>Operational issues</h3><p>Items captured by the field team</p></div><button class="btn" onclick="addIssueForLocation()">+ Issue</button></div>
+            <div class="card-body" id="profileIssuesList"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>Projects</h3><p>Known projects in this location</p></div><button class="btn" onclick="addProjectForLocation()">+ Project</button></div>
+            <div class="card-body" id="profileProjects"></div>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="card-head"><div><h3>Previous follow-ups</h3><p>What still needs attention</p></div></div>
+            <div class="card-body" id="profileFollowupsList"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>Field activity</h3><p>Recent visits and observations</p></div></div>
+            <div class="card-body" id="profileVisitsList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-issues">
+        <div class="toolbar"><input id="issueFilter" placeholder="Search issue or ward…" oninput="renderIssues()"><select id="issueStatus" onchange="renderIssues()"><option value="">All statuses</option><option>NEW</option><option>VERIFICATION_REQUIRED</option><option>VERIFIED</option><option>IN_PROGRESS</option><option>PENDING</option><option>RESOLVED</option><option>CLOSED</option></select><button class="btn primary" onclick="addIssue()">+ Add issue</button></div>
+        <div class="card"><div class="card-body" id="issuesList"></div></div>
+      </div>
+
+      <div class="view" id="view-projects">
+        <div class="toolbar"><input id="projectFilter" placeholder="Search project or location…" oninput="renderProjects()"><button class="btn primary" onclick="addProject()">+ Add project</button></div>
+        <div class="card"><div class="card-body" id="projectsList"></div></div>
+      </div>
+
+      <div class="view" id="view-visits">
+        <div class="grid">
+          <div class="card">
+            <div class="card-head"><div><h3>Record field visit</h3><p>Designed to work offline</p></div></div>
+            <div class="card-body">
+              <div class="notice offline">● Offline-safe: visits are saved locally first and synced when the connection returns.</div>
+              <div class="notice" id="geoNotice" style="display:none"></div>
+<form class="visit-form" onsubmit="saveVisit(event)">
+  <div style="display:flex;gap:8px">
+    <input id="visitLocation" required placeholder="Location / ward" style="flex:1">
+    <button type="button" class="btn" id="geoBtn" onclick="detectLocation()" style="white-space:nowrap">📍 Use my location</button>
+  </div>
+  <select id="visitPurpose"><option>Community engagement</option><option>Issue verification</option><option>Project follow-up</option><option>General field visit</option></select>
+  <input id="visitDate" type="date" required>
+  <div>
+    <div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:7px">Today's priorities</div>
+    <div class="priority-check">
+      <label><input type="checkbox" value="Water"> Water</label>
+      <label><input type="checkbox" value="Roads"> Roads</label>
+      <label><input type="checkbox" value="Health"> Health</label>
+      <label><input type="checkbox" value="Electricity"> Electricity</label>
+      <label><input type="checkbox" value="Other"> Other</label>
+    </div>
+  </div>
+  <textarea id="visitNotes" placeholder="What did you hear or observe?"></textarea>
+  <textarea id="visitAction" placeholder="Action required / commitment / next step"></textarea>
+  <select id="visitFollowup"><option value="NO">Follow-up required: No</option><option value="YES">Follow-up required: Yes</option></select>
+  <input id="visitEvidence" placeholder="Evidence note (e.g. photo taken, document seen, project site observed)">
+  <button class="btn primary" type="submit">Save visit & create follow-up if needed</button>
+</form>
+            </div>
+          </div>
+          <div class="card"><div class="card-head"><div><h3>Recent visits</h3><p>Latest field activity</p></div></div><div class="card-body" id="visitsList"></div></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-followups">
+        <div class="toolbar"><input id="followFilter" placeholder="Search follow-up…" oninput="renderFollowups()"><select id="followStatus" onchange="renderFollowups()"><option value="">All statuses</option><option>PENDING</option><option>IN_PROGRESS</option><option>COMPLETED</option></select><button class="btn primary" onclick="addFollowup()">+ Add follow-up</button></div>
+        <div class="card"><div class="card-body" id="followupsList"></div></div>
+      </div>
+
+      <div class="view" id="view-reports">
+        <div class="grid3">
+          <div class="card"><div class="card-head"><div><h3>Location brief</h3><p>One-page field briefing</p></div></div><div class="card-body"><p class="muted">Search a location, review its issues and print a concise briefing for a field visit.</p><button class="btn primary" style="margin-top:12px" onclick="searchLocation()">Create brief</button></div></div>
+          <div class="card"><div class="card-head"><div><h3>Community issues</h3><p>Aggregated issue summary</p></div></div><div class="card-body"><p class="muted">Summarise the most frequently reported service-delivery concerns by area.</p></div></div>
+          <div class="card"><div class="card-head"><div><h3>Field activity</h3><p>Visits and follow-ups</p></div></div><div class="card-body"><p class="muted">Track what has been visited, what was promised and what remains unresolved.</p></div></div>
+        </div>
+      </div>
+
+
+      <div class="view" id="view-priorities">
+        <div class="search-hero">
+          <h1>Where should we go next?</h1>
+          <p>Rank service-delivery concerns by reported volume and operational urgency. This is a field-planning tool, not an electoral targeting score.</p>
+        </div>
+        <div class="toolbar">
+          <select id="priorityLocationFilter" onchange="renderPriorities()"><option value="">All locations</option></select>
+          <select id="priorityStatusFilter" onchange="renderPriorities()"><option value="">All issue statuses</option><option>NEW</option><option>VERIFICATION_REQUIRED</option><option>VERIFIED</option><option>IN_PROGRESS</option><option>PENDING</option></select>
+        </div>
+        <div class="card"><div class="card-head"><div><h3>Priority queue</h3><p>Service-delivery issues requiring verification, action or follow-up</p></div></div><div class="card-body" id="priorityList"></div></div>
+      </div>
+
+      <div class="view" id="view-invitations">
+        <div class="search-hero">
+          <h1>Where are people asking for a visit?</h1>
+          <p>Detects wards where the survey's open-ended advice text suggests residents want a visit, and cross-checks that against recorded field visits. This flags a gap for a human to review — it is not a precise measurement.</p>
+        </div>
+        <div class="toolbar">
+          <select id="invitationSourceFilter" onchange="renderInvitations()">
+            <option value="adviceKivuti">Advice text: to Lenny Kivuti</option>
+            <option value="all">Advice text: any candidate/leader field</option>
+          </select>
+          <select id="invitationVisitFilter" onchange="renderInvitations()">
+            <option value="">All wards</option>
+            <option value="unvisited">Never visited only</option>
+            <option value="visited">Already visited</option>
+          </select>
+        </div>
+        <div class="card"><div class="card-head"><div><h3>Invitation / visit-gap list</h3><p>Wards ranked by "wants a visit" survey mentions, with visit status and sample quotes</p></div></div><div class="card-body" id="invitationList"></div></div>
+      </div>
+
+      <div class="view" id="view-map">
+        <div class="grid">
+          <div class="card">
+            <div class="card-head"><div><h3>Community coverage map</h3><p>GPS points from the research layer</p></div></div>
+            <div class="card-body">
+              <div class="map-placeholder">
+                <div><strong>Map-ready workspace</strong><p>This release prepares the map layer from survey GPS data and field visits. Add Google Maps/Mapbox credentials when deploying the production map service.</p><span class="pill">GPS points: <b id="mapGpsCount">0</b></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>Location coverage</h3><p>Survey response distribution</p></div></div>
+            <div class="card-body" id="mapCoverage"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-admin">
+        <div class="grid">
+          <div class="card"><div class="card-head"><div><h3>Access control</h3><p>Authorized users in this frontend</p></div></div><div class="card-body" id="adminUsers"></div></div>
+          <div class="card"><div class="card-head"><div><h3>Data architecture</h3><p>Separation between research and operations</p></div></div><div class="card-body">
+            <div class="area"><div><strong>Research</strong><small>responses</small></div><span class="pill">Read</span></div>
+            <div class="area"><div><strong>Contacts</strong><small>Restricted respondent data</small></div><span class="pill">Restricted</span></div>
+            <div class="area"><div><strong>Operations</strong><small>ci_issues · ci_projects · ci_visits · ci_followups</small></div><span class="pill">Cloud</span></div>
+            <div class="area"><div><strong>Offline</strong><small>IndexedDB queue</small></div><span class="pill">Local</span></div>
+          </div></div>
+        </div>
+        <div class="card"><div class="card-head"><div><h3>Operational health</h3><p>Current data availability</p></div></div><div class="card-body" id="healthChecks"></div></div>
+      </div>
+
+      <div class="view" id="view-research">
+        <div class="notice">The original ECS-2026 survey analytics remains available as the research layer. This operational dashboard uses the same Firebase project and the existing <strong>responses</strong> collection.</div>
+        <div class="stats">
+          <div class="stat"><div class="num" id="researchN">—</div><div class="label">Survey responses loaded</div></div>
+          <div class="stat"><div class="num" id="researchGPS">—</div><div class="label">GPS-verified responses</div></div>
+          <div class="stat"><div class="num" id="researchKivuti">—</div><div class="label">Responses selecting Lenny Kivuti</div></div>
+          <div class="stat"><div class="num" id="researchAdvice">—</div><div class="label">Advice responses to Lenny</div></div>
+        </div>
+        <div class="card"><div class="card-head"><div><h3>Survey → Community Intelligence bridge</h3><p>Current source fields used by this MVP</p></div></div><div class="card-body"><table class="table"><thead><tr><th>Existing survey field</th><th>Operational use</th></tr></thead><tbody><tr><td>constituency</td><td>Area grouping</td></tr><tr><td>ward</td><td>Location intelligence</td></tr><tr><td>notDelivered</td><td>Community issue themes</td></tr><tr><td>adviceKivuti</td><td>Community voice / briefing</td></tr><tr><td>_gpsLat / _gpsSkipped</td><td>Field evidence / coverage</td></tr></tbody></table></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">New record</h3>
+      <button class="btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="modalForm" class="form-grid" onsubmit="return false;"></form>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn primary" id="modalSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Firebase configuration preserved from the existing ECS-2026 application. */
+const firebaseConfig={
+ apiKey:"AIzaSyAXeNgPLKFgfxBKNta7UlGzHW-bjWzghas",
+ authDomain:"survey-842bd.firebaseapp.com",
+ projectId:"survey-842bd",
+ storageBucket:"survey-842bd.firebasestorage.app",
+ messagingSenderId:"916255795370",
+ appId:"1:916255795370:web:3f186720bf9e2b163dc8d3"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore(),auth=firebase.auth();
+
+const ADMIN_EMAILS=[
+ "admin@visiontrack.co.ke","supervisor@embu.go.ke","bettemanuel49@gmail.com",
+ "senatorkivuti@gmail.com","nicholaskasanga2@gmail.com","kiiondwiga@gmail.com","janekarimifaith@gmail.com"
+];
+
+let responses=[],issues=[],projects=[],visits=[],followups=[],currentLocation="";
+const issueThemes=["Water","Roads","Health","Electricity","Infrastructure","Irrigation","Construction","Market","Education","Youth"];
+const issueFieldMap={
+ Water:/water/i,Roads:/road/i,Health:/health|hospital|dispensary/i,Electricity:/electric|light/i,
+ Infrastructure:/infrastructure/i,Irrigation:/irrigation/i,Construction:/construction/i,
+ Market:/market/i,Education:/education|school/i,Youth:/youth/i
+};
+const queueKey="community_intelligence_sync_queue_v2";
+let localQueue=[];
+
+/* ---------- IndexedDB offline store ---------- */
+const IDB_NAME="community-intelligence-db",IDB_STORE="queue";
+function openIDB(){
+ return new Promise((resolve,reject)=>{
+  const req=indexedDB.open(IDB_NAME,1);
+  req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE,{keyPath:"id",autoIncrement:true})};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+}
+async function queueWrite(collection,data){
+ try{
+  const dbi=await openIDB(),tx=dbi.transaction(IDB_STORE,"readwrite");
+  tx.objectStore(IDB_STORE).add({collection,data,queuedAt:Date.now()});
+  await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});
+  toast("Saved offline. It will sync automatically when you reconnect.");
+ }catch(e){
+  const q=JSON.parse(localStorage.getItem(queueKey)||"[]");q.push({collection,data,queuedAt:Date.now()});localStorage.setItem(queueKey,JSON.stringify(q));
+ }
+}
+async function getQueued(){
+ const out=[];
+ try{
+  const dbi=await openIDB(),tx=dbi.transaction(IDB_STORE,"readonly"),store=tx.objectStore(IDB_STORE);
+  const req=store.getAll();const rows=await new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)});
+  rows.forEach(x=>out.push(x));
+ }catch(e){}
+ JSON.parse(localStorage.getItem(queueKey)||"[]").forEach(x=>out.push({...x,id:"ls_"+x.queuedAt}));
+ return out;
+}
+async function deleteQueued(id){
+ if(String(id).startsWith("ls_"))return;
+ const dbi=await openIDB(),tx=dbi.transaction(IDB_STORE,"readwrite");tx.objectStore(IDB_STORE).delete(id);
+}
+async function syncQueue(){
+ if(!navigator.onLine)return;
+ const q=await getQueued();if(!q.length){setNetwork();return}
+ let ok=0;
+ for(const item of q){
+  try{
+   await db.collection(item.collection).add(item.data);
+   await deleteQueued(item.id);ok++;
+  }catch(e){console.warn("Sync failed",e)}
+ }
+ if(ok) toast(ok+" offline record(s) synced to Firebase.");
+ setNetwork();loadData();
+}
+
+/* ---------- UI ---------- */
+function toast(msg){
+ const el=document.getElementById("toast");if(!el)return;
+ el.textContent=msg;el.style.display="block";clearTimeout(window._toast);
+ window._toast=setTimeout(()=>el.style.display="none",3500);
+}
+
+/* ---------- Auth: Google + Email/Password ---------- */
+let authMode="signin"; // "signin" | "signup"
+
+function setAuthMode(mode){
+ authMode=mode;
+ const submitBtn=document.getElementById("authSubmitBtn");
+ const toggleText=document.getElementById("authToggleText");
+ document.getElementById("loginErr").style.display="none";
+ document.getElementById("loginOk").style.display="none";
+ if(mode==="signup"){
+  submitBtn.textContent="Create account";
+  document.getElementById("authPassword").setAttribute("autocomplete","new-password");
+  toggleText.innerHTML='Already have an account? <a onclick="setAuthMode(\'signin\')">Sign in</a>';
+ }else{
+  submitBtn.textContent="Sign in";
+  document.getElementById("authPassword").setAttribute("autocomplete","current-password");
+  toggleText.innerHTML='Don\'t have an account? <a onclick="setAuthMode(\'signup\')">Create one</a>';
+ }
+}
+
+function handleAuthSubmit(){
+ authMode==="signup"?emailSignUp():emailSignIn();
+}
+
+function clearAuthMessages(){
+ const errEl=document.getElementById("loginErr"),okEl=document.getElementById("loginOk");
+ errEl.style.display="none";okEl.style.display="none";
+}
+
+function emailSignIn(){
+ clearAuthMessages();
+ const email=document.getElementById("authEmail").value.trim();
+ const password=document.getElementById("authPassword").value;
+ const errEl=document.getElementById("loginErr");
+ if(!email||!password){errEl.textContent="Please enter your email and password.";errEl.style.display="block";return}
+ const btn=document.getElementById("authSubmitBtn");btn.disabled=true;
+ auth.signInWithEmailAndPassword(email,password)
+  .catch(e=>{errEl.textContent=friendlyAuthError(e);errEl.style.display="block";})
+  .finally(()=>{btn.disabled=false;});
+}
+
+function emailSignUp(){
+ clearAuthMessages();
+ const email=document.getElementById("authEmail").value.trim();
+ const password=document.getElementById("authPassword").value;
+ const errEl=document.getElementById("loginErr");
+ if(!email||!password){errEl.textContent="Please enter an email and password.";errEl.style.display="block";return}
+ if(password.length<6){errEl.textContent="Password should be at least 6 characters.";errEl.style.display="block";return}
+ const btn=document.getElementById("authSubmitBtn");btn.disabled=true;
+ auth.createUserWithEmailAndPassword(email,password)
+  .catch(e=>{errEl.textContent=friendlyAuthError(e);errEl.style.display="block";})
+  .finally(()=>{btn.disabled=false;});
+}
+
+function resetPassword(){
+ clearAuthMessages();
+ const email=document.getElementById("authEmail").value.trim();
+ const errEl=document.getElementById("loginErr"),okEl=document.getElementById("loginOk");
+ if(!email){errEl.textContent="Enter your email above first, then tap \"Forgot password?\".";errEl.style.display="block";return}
+ auth.sendPasswordResetEmail(email)
+  .then(()=>{okEl.textContent="Password reset email sent to "+email+".";okEl.style.display="block";})
+  .catch(e=>{errEl.textContent=friendlyAuthError(e);errEl.style.display="block";});
+}
+
+function friendlyAuthError(e){
+ const map={
+  "auth/email-already-in-use":"That email is already registered — try signing in instead.",
+  "auth/invalid-email":"That doesn't look like a valid email address.",
+  "auth/weak-password":"Password should be at least 6 characters.",
+  "auth/wrong-password":"Incorrect password.",
+  "auth/user-not-found":"No account found with that email.",
+  "auth/invalid-credential":"Incorrect email or password.",
+  "auth/too-many-requests":"Too many attempts. Please wait a moment and try again."
+ };
+ return map[e.code]||e.message;
+}
+
+function signIn(){
+ clearAuthMessages();
+ const provider=new firebase.auth.GoogleAuthProvider();
+ document.getElementById("loginBtn").disabled=true;
+ auth.signInWithPopup(provider).catch(e=>{
+  const el=document.getElementById("loginErr");el.textContent=e.message;el.style.display="block";
+  document.getElementById("loginBtn").disabled=false;
+ });
+}
+async function signOut(){await auth.signOut()}
+auth.onAuthStateChanged(async user=>{
+ if(!user){document.getElementById("loginWall").style.display="flex";document.getElementById("app").style.display="none";return}
+ const email=(user.email||"").toLowerCase();
+ if(!ADMIN_EMAILS.includes(email)){
+  const el=document.getElementById("loginErr");el.textContent="Access denied for "+email;el.style.display="block";await auth.signOut();return;
+ }
+ document.getElementById("loginWall").style.display="none";document.getElementById("app").style.display="block";
+ document.getElementById("userName").textContent=user.displayName||user.email;
+ if(user.photoURL)document.getElementById("userAvatar").src=user.photoURL;
+ document.getElementById("visitDate").value=new Date().toISOString().slice(0,10);
+ renderGreeting();renderAdmin();loadData();
+});
+
+/* ---------- Greeting ---------- */
+function greetingPhrase(){
+ const h=new Date().getHours();
+ if(h<5)return"Working late";
+ if(h<12)return"Good morning";
+ if(h<17)return"Good afternoon";
+ if(h<21)return"Good evening";
+ return"Working late";
+}
+function firstName(){
+ const u=auth.currentUser;if(!u)return"";
+ const n=(u.displayName||u.email||"").trim();
+ return n.split(/\s+/)[0]||n;
+}
+function renderGreeting(){
+ const t=document.getElementById("greetingText");if(!t)return;
+ t.textContent=`${greetingPhrase()}, ${firstName()||"there"}.`;
+}
+function setNetwork(){
+ const online=navigator.onLine;document.getElementById("networkStatus").textContent=online?"● Online":"● Offline";
+ document.getElementById("networkStatus").className="status "+(online?"":"offline");
+ document.getElementById("syncText").textContent=online?"Cloud sync available":"Offline mode";
+}
+window.addEventListener("online",()=>{setNetwork();syncQueue()});window.addEventListener("offline",setNetwork);setNetwork();
+
+async function loadData(){
+ let hadError=false;
+ try{const s=await db.collection("responses").orderBy("_submittedAt","desc").get();responses=s.docs.map(d=>({_id:d.id,...d.data()}));}
+ catch(e){console.warn("Responses load:",e.message);hadError=true;}
+ for(const [name,setter] of [
+  ["ci_issues",x=>issues=x],["ci_projects",x=>projects=x],["ci_visits",x=>visits=x],["ci_followups",x=>followups=x]
+ ]){
+  try{const s=await db.collection(name).orderBy("createdAt","desc").get();setter(s.docs.map(d=>({_id:d.id,...d.data()})));}
+  catch(e){setter([]);hadError=true;console.warn(name+" load:",e.message)}
+ }
+ if(hadError)toast("Some data could not be loaded. Check your connection or Firestore rules.");
+ renderAll();syncQueue();
+}
+function renderAll(){renderDashboard();renderLocations();renderIssues();renderProjects();renderVisits();renderFollowups();renderResearch();populateWards();renderPriorities();renderInvitations();renderMap();renderAdmin();}
+function getThemeCounts(rows=responses){
+ const counts={};issueThemes.forEach(x=>counts[x]=0);
+ rows.forEach(r=>{
+  const raw=Array.isArray(r.notDelivered)?r.notDelivered.join(" "):(r.notDelivered||"");
+  issueThemes.forEach(t=>{if(issueFieldMap[t].test(raw))counts[t]++});
+ });
+ return counts;
+}
+function renderDashboard(){
+ const counts=getThemeCounts(),ranked=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+ document.getElementById("statIssues").textContent=issues.length||ranked.filter(x=>x[1]>0).length;
+ document.getElementById("statHigh").textContent=issues.filter(x=>x.priority==="HIGH").length;
+ document.getElementById("statFollow").textContent=followups.filter(x=>x.status!=="COMPLETED").length;
+ document.getElementById("statVisits").textContent=visits.length;
+ document.getElementById("topIssues").innerHTML=ranked.slice(0,7).map((x,i)=>`<div class="issue"><div class="rank">${i+1}</div><div class="issue-main"><strong>${x[0]}</strong><small>${x[1]} survey mentions</small></div><span class="badge ${i<2?"high":i<5?"medium":"low"}">${i<2?"HIGH":i<5?"MEDIUM":"WATCH"}</span></div>`).join("")||'<div class="empty">No survey issue data found.</div>';
+ const wards={};responses.forEach(r=>{if(r.ward)wards[r.ward]=(wards[r.ward]||0)+1});
+ document.getElementById("attentionAreas").innerHTML=Object.entries(wards).sort((a,b)=>b[1]-a[1]).slice(0,6).map((x,i)=>`<div class="area"><div><strong>${esc(x[0])}</strong><small>${i<3?"Priority review":"Survey coverage"}</small></div><span class="pill">${x[1]} responses</span></div>`).join("")||'<div class="empty">No location data available.</div>';
+ document.getElementById("latestVisits").innerHTML=visits.slice(0,5).map(v=>`<div class="area"><div><strong>${esc(v.location||"Unknown")}</strong><small>${esc(v.purpose||"Visit")}</small></div><small>${esc(v.date||"")}</small></div>`).join("")||'<div class="empty">No visits recorded yet.</div>';
+ document.getElementById("latestFollowups").innerHTML=followups.filter(x=>x.status!=="COMPLETED").slice(0,5).map(f=>`<div class="area"><div><strong>${esc(f.title||"Follow-up")}</strong><small>${esc(f.location||"")}</small></div><span class="badge medium">${esc(f.status||"PENDING")}</span></div>`).join("")||'<div class="empty">No pending follow-ups.</div>';
+}
+/* ---------- Location detection (Embu County only, no external map API) ----------
+   Approach: the browser gives us the device's GPS coordinates. We check they
+   fall within a generous bounding box around Embu County (boundary data is
+   approximate — treat this as a soft sanity check, not a precise legal
+   boundary). We then find the nearest ward by comparing against the GPS
+   coordinates already attached to survey responses (_gpsLat/_gpsLng), since
+   we don't have a separate geocoding service configured. */
+const EMBU_BOUNDS={minLat:-0.95,maxLat:0.05,minLng:37.00,maxLng:38.05};
+function withinEmbuBounds(lat,lng){
+ return lat>=EMBU_BOUNDS.minLat&&lat<=EMBU_BOUNDS.maxLat&&lng>=EMBU_BOUNDS.minLng&&lng<=EMBU_BOUNDS.maxLng;
+}
+function haversineKm(lat1,lng1,lat2,lng2){
+ const R=6371,toRad=d=>d*Math.PI/180;
+ const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);
+ const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+ return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function wardCentroids(){
+ const sums={};
+ responses.forEach(r=>{
+  const lat=Number(r._gpsLat),lng=Number(r._gpsLng);
+  if(!r.ward||r._gpsSkipped||!isFinite(lat)||!isFinite(lng))return;
+  sums[r.ward]=sums[r.ward]||{latSum:0,lngSum:0,n:0};
+  sums[r.ward].latSum+=lat;sums[r.ward].lngSum+=lng;sums[r.ward].n++;
+ });
+ return Object.entries(sums).map(([ward,s])=>({ward,lat:s.latSum/s.n,lng:s.lngSum/s.n,n:s.n}));
+}
+function nearestWard(lat,lng){
+ const centroids=wardCentroids();
+ if(!centroids.length)return null;
+ let best=null;
+ centroids.forEach(c=>{
+  const d=haversineKm(lat,lng,c.lat,c.lng);
+  if(!best||d<best.distanceKm)best={ward:c.ward,distanceKm:d,sampleSize:c.n};
+ });
+ return best;
+}
+function detectLocation(context){
+ if(!navigator.geolocation){toast("Geolocation is not supported by this browser.");return}
+ const noticeEl=context!=="dashboard"?document.getElementById("geoNotice"):null;
+ if(noticeEl){noticeEl.style.display="block";noticeEl.textContent="Detecting your location…";}
+ else toast("Detecting your location…");
+ navigator.geolocation.getCurrentPosition(pos=>{
+  const{latitude:lat,longitude:lng}=pos.coords;
+  if(!withinEmbuBounds(lat,lng)){
+   const msg="Your current location doesn't appear to be within Embu County. Please enter the ward manually.";
+   if(noticeEl){noticeEl.textContent="⚠️ "+msg;}else toast(msg);
+   return;
+  }
+  const match=nearestWard(lat,lng);
+  if(!match){
+   const msg="Within Embu County, but no GPS-tagged survey responses are available yet to match a ward. Please enter it manually.";
+   if(noticeEl){noticeEl.textContent="⚠️ "+msg;}else toast(msg);
+   return;
+  }
+  const confidence=match.distanceKm<3?"high confidence":match.distanceKm<10?"moderate confidence":"low confidence — please verify";
+  const msg=`📍 Detected: ${match.ward} (~${match.distanceKm.toFixed(1)}km from nearest survey point, ${match.sampleSize} sample(s), ${confidence}).`;
+  if(context==="dashboard"){
+   toast(msg);openLocation(match.ward);
+  }else{
+   document.getElementById("visitLocation").value=match.ward;
+   if(noticeEl){noticeEl.textContent=msg;}
+  }
+ },err=>{
+  const msg=err.code===1?"Location permission denied. Please allow location access, or enter the ward manually.":"Could not determine your location. Please enter the ward manually.";
+  if(noticeEl){noticeEl.textContent="⚠️ "+msg;}else toast(msg);
+ },{enableHighAccuracy:true,timeout:10000});
+}
+function populateWards(){
+ const wards=[...new Set(responses.map(r=>r.ward).filter(Boolean))].sort();
+ const opts='<option value="">All wards</option>'+wards.map(w=>`<option>${esc(w)}</option>`).join("");
+ document.getElementById("wardFilter").innerHTML=opts;
+ document.getElementById("priorityLocationFilter").innerHTML=opts;
+}
+function renderLocations(){
+ const q=(document.getElementById("locationFilter")?.value||"").toLowerCase(),w=document.getElementById("wardFilter")?.value||"",grouped={};
+ responses.forEach(r=>{if(!r.ward)return;if(w&&r.ward!==w)return;if(q&&!(`${r.ward} ${r.constituency||""}`.toLowerCase().includes(q)))return;grouped[r.ward]=(grouped[r.ward]||{n:0,constituency:r.constituency||""});grouped[r.ward].n++});
+ document.getElementById("locationGrid").innerHTML=Object.entries(grouped).map(([name,x])=>`<div class="card"><div class="location-card"><span class="pill">Survey coverage</span><h2>${esc(name)}</h2><div class="location-meta">${esc(x.constituency)} · ${x.n} responses</div><div class="area"><strong>Known issues</strong><span>${issues.filter(i=>sameLocation(i.location,name)).length}</span></div><div class="area"><strong>Visits</strong><span>${visits.filter(v=>sameLocation(v.location,name)).length}</span></div><button class="btn primary" style="margin-top:14px;width:100%" data-open-location="${escAttr(name)}">Open intelligence</button></div></div>`).join("")||'<div class="empty">No matching locations.</div>';
+}
+function locationRows(name){return responses.filter(r=>sameLocation(r.ward,name))}
+function sameLocation(a,b){return String(a||"").trim().toLowerCase()===String(b||"").trim().toLowerCase()}
+function themeCountsForRows(rows){
+ const counts={};issueThemes.forEach(x=>counts[x]=0);rows.forEach(r=>{const raw=Array.isArray(r.notDelivered)?r.notDelivered.join(" "):(r.notDelivered||"");issueThemes.forEach(t=>{if(issueFieldMap[t].test(raw))counts[t]++})});
+ return Object.entries(counts).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+}
+function openLocation(name){currentLocation=name;renderLocationProfile(currentLocation);showView("location")}
+function renderLocationProfile(name){
+ currentLocation=name;const rows=locationRows(name),sample=rows.find(r=>r.constituency)||{};
+ const li=issues.filter(i=>sameLocation(i.location,name)),lp=projects.filter(p=>sameLocation(p.location,name)),lv=visits.filter(v=>sameLocation(v.location,name)),lf=followups.filter(f=>sameLocation(f.location,name));
+ const themes=themeCountsForRows(rows);
+ document.getElementById("profileName").textContent=name;document.getElementById("profileMeta").textContent=(sample.constituency||"Constituency not recorded")+" · "+rows.length+" survey responses";
+ document.getElementById("profileResponses").textContent=rows.length;document.getElementById("profileIssues").textContent=li.length;document.getElementById("profileFollowups").textContent=lf.filter(f=>f.status!=="COMPLETED").length;document.getElementById("profileVisits").textContent=lv.length;
+ document.getElementById("profileLastVisit").textContent=lv[0]?.date||"No visit recorded";
+ document.getElementById("profileNote").textContent=rows.length?"Use this briefing to understand reported concerns, previous activity and what still needs attention before a field visit.":"No survey responses are currently linked to this ward.";
+ const max=themes[0]?.[1]||1;
+ document.getElementById("profileConcerns").innerHTML=themes.slice(0,7).map((x,i)=>`<div class="theme-row"><div style="width:28px;font-weight:800">${i+1}</div><div style="flex:1"><strong>${esc(x[0])}</strong><div class="theme-bar" style="width:${Math.max(12,Math.round(x[1]/max*100))}%"></div></div><div class="theme-count">${x[1]}</div></div>`).join("")||'<div class="empty">No issue themes found.</div>';
+ const voice=rows.map(r=>String(r.adviceKivuti||"").trim()).filter(Boolean),unique=[...new Set(voice)].slice(0,5);
+ document.getElementById("profileVoice").innerHTML=unique.map(v=>`<div class="voice">"${esc(v)}"</div>`).join("")||'<div class="empty">No written advice is available.</div>';
+ if(voice.length>unique.length)document.getElementById("profileVoice").innerHTML+=`<div class="mini-meta">${voice.length} written advice responses found; showing ${unique.length} representative entries.</div>`;
+ document.getElementById("profileIssuesList").innerHTML=li.map(i=>`<div class="issue-detail"><header><strong>${esc(i.title||"Untitled issue")}</strong><span class="badge ${i.priority==="HIGH"?"high":i.priority==="MEDIUM"?"medium":"low"}">${esc(i.priority||"MEDIUM")}</span></header><p>${esc(i.description||"No description")}</p><span class="pill">${esc(i.status||"NEW")}</span> <span class="pill">${esc(i.category||"General")}</span></div>`).join("")||'<div class="empty">No operational issues recorded here yet.</div>';
+ document.getElementById("profileProjects").innerHTML=lp.map(p=>`<div class="issue-detail"><header><strong>${esc(p.title||"Project")}</strong><span class="badge medium">${esc(p.status||"UNKNOWN")}</span></header><p>${esc(p.description||"No description")}</p></div>`).join("")||'<div class="empty">No project records for this location yet.</div>';
+ document.getElementById("profileFollowupsList").innerHTML=lf.map(f=>`<div class="area"><div><strong>${esc(f.title||"Follow-up")}</strong><small>${esc(f.notes||"")}</small></div><span class="badge medium">${esc(f.status||"PENDING")}</span></div>`).join("")||'<div class="empty">No follow-ups recorded.</div>';
+ document.getElementById("profileVisitsList").innerHTML=lv.slice(0,8).map(v=>`<div class="area"><div><strong>${esc(v.date||"Visit")}</strong><small>${esc(v.purpose||"Field visit")} · ${esc(v.notes||"")}</small></div><span class="pill">Visit</span></div>`).join("")||'<div class="empty">No field visits recorded yet.</div>';
+}
+function startVisitFromLocation(){document.getElementById("visitLocation").value=currentLocation||"";document.getElementById("visitDate").value=new Date().toISOString().slice(0,10);showView("visits");document.getElementById("visitLocation").focus()}
+function addIssueForLocation(){addIssue(currentLocation)}
+function addProjectForLocation(){addProject(currentLocation)}
+function printLocationBrief(){if(!currentLocation)return;const t=document.title;document.title=currentLocation+" — Community Intelligence Brief";window.print();document.title=t}
+
+function renderIssues(){
+ const q=(document.getElementById("issueFilter")?.value||"").toLowerCase(),s=document.getElementById("issueStatus")?.value||"";
+ const arr=issues.filter(i=>(!s||i.status===s)&&(`${i.title||""} ${i.location||""} ${i.category||""}`.toLowerCase().includes(q)));
+ document.getElementById("issuesList").innerHTML=arr.map(i=>`<div class="issue-detail"><header><strong>${esc(i.title||"Untitled issue")}</strong><span class="badge ${i.priority==="HIGH"?"high":i.priority==="MEDIUM"?"medium":"low"}">${esc(i.priority||"MEDIUM")}</span></header><p>${esc(i.description||"No description")}</p><span class="pill">📍 ${esc(i.location||"Unknown")}</span> <span class="pill">${esc(i.status||"NEW")}</span> <span class="pill">${esc(i.category||"General")}</span><div class="priority-actions"><button class="btn" data-toggle-issue="${i._id}" data-next-status="${i.status==="RESOLVED"?"VERIFIED":"RESOLVED"}">${i.status==="RESOLVED"?"Reopen":"Mark resolved"}</button></div></div>`).join("")||'<div class="empty">No issues recorded.</div>';
+}
+function renderProjects(){const q=(document.getElementById("projectFilter")?.value||"").toLowerCase();const arr=projects.filter(p=>`${p.title||""} ${p.location||""}`.toLowerCase().includes(q));document.getElementById("projectsList").innerHTML=arr.map(p=>`<div class="issue-detail"><header><strong>${esc(p.title||"Project")}</strong><span class="badge medium">${esc(p.status||"UNKNOWN")}</span></header><p>${esc(p.description||"")}</p><span class="pill">📍 ${esc(p.location||"Unknown")}</span></div>`).join("")||'<div class="empty">No projects recorded yet.</div>'}
+function renderVisits(){document.getElementById("visitsList").innerHTML=visits.map(v=>`<div class="area"><div><strong>${esc(v.location||"Unknown")}</strong><small>${esc(v.purpose||"")} · ${esc(v.notes||"")}</small></div><small>${esc(v.date||"")}</small></div>`).join("")||'<div class="empty">No visits yet.</div>'}
+function renderFollowups(){
+ const q=(document.getElementById("followFilter")?.value||"").toLowerCase(),s=document.getElementById("followStatus")?.value||"",arr=followups.filter(f=>(!s||f.status===s)&&`${f.title||""} ${f.location||""}`.toLowerCase().includes(q));
+ document.getElementById("followupsList").innerHTML=arr.map(f=>`<div class="issue-detail"><header><strong>${esc(f.title||"Follow-up")}</strong><span class="badge medium">${esc(f.status||"PENDING")}</span></header><p>${esc(f.notes||"")}</p><span class="pill">📍 ${esc(f.location||"")}</span><div class="priority-actions"><button class="btn" data-complete-followup="${f._id}">${f.status==="COMPLETED"?"Completed":"Mark completed"}</button></div></div>`).join("")||'<div class="empty">No follow-ups found.</div>';
+}
+function renderResearch(){document.getElementById("researchN").textContent=responses.length;document.getElementById("researchGPS").textContent=responses.filter(r=>r._gpsLat&&!r._gpsSkipped).length;document.getElementById("researchKivuti").textContent=responses.filter(r=>r.governor==="Lenny Kivuti").length;document.getElementById("researchAdvice").textContent=responses.filter(r=>r.adviceKivuti&&String(r.adviceKivuti).trim()).length}
+
+async function saveVisit(e){
+ e.preventDefault();
+ const priorities=[...document.querySelectorAll(".priority-check input:checked")].map(x=>x.value);
+ const follow=document.getElementById("visitFollowup").value==="YES";
+ const location=document.getElementById("visitLocation").value.trim(),notes=document.getElementById("visitNotes").value.trim(),action=document.getElementById("visitAction").value.trim();
+ const item={location,purpose:document.getElementById("visitPurpose").value,date:document.getElementById("visitDate").value,priorities,notes,action,followupRequired:follow,evidenceNote:document.getElementById("visitEvidence").value.trim(),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.email};
+ try{if(navigator.onLine)await db.collection("ci_visits").add(item);else throw new Error("offline");}
+ catch(err){await queueWrite("ci_visits",item)}
+ if(follow){
+  const f={title:action||"Follow-up from field visit",location,status:"PENDING",notes:notes||"Follow-up created from visit.",sourceVisitDate:item.date,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.email};
+  try{if(navigator.onLine)await db.collection("ci_followups").add(f);else throw new Error("offline");}catch(err){await queueWrite("ci_followups",f)}
+ }
+ toast(navigator.onLine?"Visit saved.":"Visit saved offline.");
+ e.target.reset();document.getElementById("visitDate").value=new Date().toISOString().slice(0,10);loadData();
+}
+async function updateIssueStatus(id,status){try{await db.collection("ci_issues").doc(id).update({status,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.email});toast("Issue status updated.");loadData()}catch(e){toast("Could not update issue.");}}
+async function completeFollowup(id){try{await db.collection("ci_followups").doc(id).update({status:"COMPLETED",completedAt:firebase.firestore.FieldValue.serverTimestamp(),completedBy:auth.currentUser.email});toast("Follow-up completed.");loadData()}catch(e){toast("Could not update follow-up.");}}
+
+/* ---------- Modal system (replaces prompt()-based add flows) ---------- */
+function fieldHtml(f){
+ const id="mf_"+f.name;
+ if(f.type==="select"){
+  return `<div class="form-field${f.full?" full":""}"><label for="${id}">${esc(f.label)}</label><select id="${id}">${f.options.map(o=>`<option value="${escAttr(o)}"${o===f.value?" selected":""}>${esc(o)}</option>`).join("")}</select></div>`;
+ }
+ if(f.type==="textarea"){
+  return `<div class="form-field full"><label for="${id}">${esc(f.label)}</label><textarea id="${id}" placeholder="${escAttr(f.placeholder||"")}">${esc(f.value||"")}</textarea></div>`;
+ }
+ return `<div class="form-field${f.full?" full":""}"><label for="${id}">${esc(f.label)}</label><input id="${id}" type="text" value="${escAttr(f.value||"")}" placeholder="${escAttr(f.placeholder||"")}"></div>`;
+}
+function openModal({title,fields,onSave}){
+ document.getElementById("modalTitle").textContent=title;
+ document.getElementById("modalForm").innerHTML=fields.map(fieldHtml).join("");
+ const saveBtn=document.getElementById("modalSaveBtn");
+ saveBtn.onclick=()=>{
+  const values={};
+  fields.forEach(f=>{values[f.name]=document.getElementById("mf_"+f.name).value.trim()});
+  if(fields.some(f=>f.required&&!values[f.name])){toast("Please fill in all required fields.");return}
+  closeModal();
+  onSave(values);
+ };
+ document.getElementById("modalBackdrop").style.display="flex";
+}
+function closeModal(){document.getElementById("modalBackdrop").style.display="none"}
+document.getElementById("modalBackdrop").addEventListener("click",e=>{if(e.target.id==="modalBackdrop")closeModal()});
+
+function addIssue(locationOverride=""){
+ openModal({
+  title:"Add issue",
+  fields:[
+   {name:"title",label:"Issue title",placeholder:"e.g. Water supply problem",required:true},
+   {name:"location",label:"Location / ward",value:locationOverride,placeholder:"Ward name",required:true},
+   {name:"category",label:"Category",type:"select",options:issueThemes.concat("General"),value:"Water"},
+   {name:"priority",label:"Priority",type:"select",options:["HIGH","MEDIUM","LOW"],value:"HIGH"},
+   {name:"description",label:"Description",type:"textarea",placeholder:"Details about this issue"}
+  ],
+  onSave(v){
+   writeOrQueue("ci_issues",{title:v.title,location:v.location||"Unknown",category:v.category,priority:v.priority,status:"NEW",description:v.description||"Added from Community Intelligence dashboard.",createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.email},"Issue added");
+  }
+ });
+}
+function addProject(locationOverride=""){
+ openModal({
+  title:"Add project",
+  fields:[
+   {name:"title",label:"Project name",required:true},
+   {name:"location",label:"Location / ward",value:locationOverride,required:true},
+   {name:"status",label:"Status",type:"select",options:["PROPOSED","ONGOING","COMPLETED","UNKNOWN"],value:"UNKNOWN"},
+   {name:"description",label:"Description",type:"textarea"}
+  ],
+  onSave(v){
+   writeOrQueue("ci_projects",{title:v.title,location:v.location||"Unknown",status:v.status,description:v.description||"Project record created from dashboard.",createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.email},"Project added");
+  }
+ });
+}
+function addFollowup(){
+ openModal({
+  title:"Add follow-up",
+  fields:[
+   {name:"title",label:"Follow-up title",required:true},
+   {name:"location",label:"Location / ward",required:true},
+   {name:"notes",label:"Notes",type:"textarea",placeholder:"Follow-up created from dashboard."}
+  ],
+  onSave(v){
+   writeOrQueue("ci_followups",{title:v.title,location:v.location||"Unknown",status:"PENDING",notes:v.notes||"Follow-up created from dashboard.",createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.email},"Follow-up added");
+  }
+ });
+}
+async function writeOrQueue(collection,item,msg){
+ try{if(navigator.onLine)await db.collection(collection).add(item);else throw new Error("offline");toast(msg+" and synced.");}
+ catch(e){await queueWrite(collection,item);toast(msg+" saved offline.");}
+ loadData();
+}
+function renderPriorities(){
+ const loc=document.getElementById("priorityLocationFilter")?.value||"",status=document.getElementById("priorityStatusFilter")?.value||"";
+ const themeRows=[];
+ const counts={};
+ responses.forEach(r=>{if(!r.ward)return;if(loc&&r.ward!==loc)return;const raw=Array.isArray(r.notDelivered)?r.notDelivered.join(" "):(r.notDelivered||"");issueThemes.forEach(t=>{if(issueFieldMap[t].test(raw)){const k=r.ward+"|"+t;counts[k]=(counts[k]||0)+1}})});
+ Object.entries(counts).forEach(([k,n])=>{const [location,theme]=k.split("|");themeRows.push({location,theme,n})});
+ const operational=issues.filter(i=>(!loc||i.location===loc)&&(!status||i.status===status)).map(i=>({location:i.location||"Unknown",theme:i.category||"Issue",n:100+(i.priority==="HIGH"?30:i.priority==="MEDIUM"?15:0),title:i.title,status:i.status,op:true}));
+ const rows=[...operational,...themeRows].sort((a,b)=>b.n-a.n).slice(0,30);
+ document.getElementById("priorityList").innerHTML=rows.map((x,i)=>`<div class="priority-card"><header><div><strong>${i+1}. ${esc(x.title||x.theme)}</strong><div class="mini-meta">${esc(x.location)} · ${x.op?esc(x.status||"NEW"):(x.n+" survey mentions")}</div></div><span class="badge ${i<5?"high":i<12?"medium":"low"}">${i<5?"HIGH":"REVIEW"}</span></header><p>${x.op?"Operational record requiring field attention.":"Survey-derived service-delivery pattern; verify locally before treating it as an operational issue."}</p><div class="priority-actions"><button class="btn primary" data-open-location="${escAttr(x.location)}">Open location</button>${x.op?"":`<button class="btn" data-prefill-issue-location="${escAttr(x.location)}" data-prefill-issue-theme="${escAttr(x.theme)}">Create issue</button>`}</div></div>`).join("")||'<div class="empty">No priorities match the current filters.</div>';
+}
+
+/* ---------- Invitation / visit-gap tracker ----------
+   Detects "wants a visit" signals from open-ended survey advice text and
+   cross-references against recorded field visits (ci_visits). This is a
+   soft, human-reviewed signal, not an automated targeting score:
+   - Regex matching on free text is noisy by nature; false positives are
+     expected and are fine, since a person reviews the quotes before acting.
+   - Only ward-level aggregates and short representative quotes are shown —
+     never a respondent name, phone number or other identifying detail. */
+const VISIT_REQUEST_PATTERN=/\b(please\s+)?(come|visit|invite|invited)\b.{0,40}\b(us|our|here|ward|village|home|area)\b|\bwe\s+(want|need|are\s+waiting\s+for|would\s+like)\b.{0,30}\b(visit|to\s+come|him\s+to\s+come|her\s+to\s+come)\b|\bhas(?:n['’]t| not)\s+(?:yet\s+)?visited\b|\bnever\s+visited\b|\bwe\s+are\s+neglected\b.{0,30}\bvisit/i;
+const ADVICE_FIELDS_ALL=["adviceKivuti","adviceMbarire","adviceRuto","adviceMukunji"];
+
+function computeInvitationData(){
+ const src=document.getElementById("invitationSourceFilter")?.value||"adviceKivuti";
+ const fields=src==="all"?ADVICE_FIELDS_ALL:[src];
+ const byWard={};
+ responses.forEach(r=>{
+  if(!r.ward)return;
+  fields.forEach(f=>{
+   const text=String(r[f]||"").trim();
+   if(text.length<4)return;
+   if(VISIT_REQUEST_PATTERN.test(text)){
+    byWard[r.ward]=byWard[r.ward]||{mentions:0,quotes:[]};
+    byWard[r.ward].mentions++;
+    if(byWard[r.ward].quotes.length<5&&!byWard[r.ward].quotes.includes(text))byWard[r.ward].quotes.push(text);
+   }
+  });
+ });
+ return Object.entries(byWard).map(([ward,d])=>{
+  const wardVisits=visits.filter(v=>sameLocation(v.location,ward)).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  return{ward,mentions:d.mentions,quotes:d.quotes,visited:wardVisits.length>0,lastVisitDate:wardVisits[0]?.date||null,visitCount:wardVisits.length};
+ }).sort((a,b)=>{
+  if(a.visited!==b.visited)return a.visited?1:-1; // unvisited wards float to top
+  return b.mentions-a.mentions;
+ });
+}
+function renderInvitations(){
+ const filter=document.getElementById("invitationVisitFilter")?.value||"";
+ let rows=computeInvitationData();
+ if(filter==="unvisited")rows=rows.filter(r=>!r.visited);
+ if(filter==="visited")rows=rows.filter(r=>r.visited);
+ document.getElementById("invitationList").innerHTML=rows.map((r,i)=>`
+  <div class="priority-card">
+   <header>
+    <div><strong>${i+1}. ${esc(r.ward)}</strong><div class="mini-meta">${r.mentions} survey mention${r.mentions===1?"":"s"} requesting a visit · ${r.visited?`last visit ${esc(r.lastVisitDate||"date unknown")} (${r.visitCount} total)`:"no field visit recorded yet"}</div></div>
+    <span class="badge ${r.visited?"low":"high"}">${r.visited?"VISITED":"NOT YET VISITED"}</span>
+   </header>
+   ${r.quotes.map(q=>`<div class="voice">"${esc(q)}"</div>`).join("")}
+   <p>Aggregated from open-ended survey text; verify locally — this is a planning signal, not a confirmed request.</p>
+   <div class="priority-actions">
+    <button class="btn primary" data-open-location="${escAttr(r.ward)}">Open location</button>
+    <button class="btn" data-prefill-visit-location="${escAttr(r.ward)}">Plan a visit</button>
+   </div>
+  </div>`).join("")||'<div class="empty">No visit-request signals found for the current filters.</div>';
+}
+function prefillVisit(location){
+ document.getElementById("visitLocation").value=location;
+ document.getElementById("visitDate").value=new Date().toISOString().slice(0,10);
+ showView("visits");
+ toast("Visit form pre-filled for "+location+".");
+}
+
+function prefillIssue(location,theme){
+ showView("issues");
+ openModal({
+  title:"Create issue from priority queue",
+  fields:[
+   {name:"title",label:"Issue title",value:theme+" concern",required:true},
+   {name:"location",label:"Location / ward",value:location,required:true},
+   {name:"category",label:"Category",type:"select",options:issueThemes.concat("General"),value:issueThemes.includes(theme)?theme:"General"},
+   {name:"description",label:"Description",type:"textarea",value:"Created from survey-derived priority queue; requires local verification."}
+  ],
+  onSave(v){
+   writeOrQueue("ci_issues",{title:v.title,location:v.location,category:v.category,priority:"HIGH",status:"VERIFICATION_REQUIRED",description:v.description,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.email},"Issue created");
+  }
+ });
+}
+function renderMap(){
+ const gps=responses.filter(r=>r._gpsLat&&!r._gpsSkipped).length;document.getElementById("mapGpsCount").textContent=gps;
+ const wards={};responses.forEach(r=>{if(r.ward)wards[r.ward]=(wards[r.ward]||0)+1});
+ document.getElementById("mapCoverage").innerHTML=Object.entries(wards).sort((a,b)=>b[1]-a[1]).slice(0,10).map(x=>`<div class="area"><div><strong>${esc(x[0])}</strong><small>Survey coverage</small></div><span class="pill">${x[1]}</span></div>`).join("")||'<div class="empty">No coverage data.</div>';
+}
+function renderAdmin(){
+ document.getElementById("adminUsers").innerHTML=ADMIN_EMAILS.map(e=>`<div class="area"><div><strong>${esc(e)}</strong><small>Authorized frontend user</small></div><span class="pill">Authorized</span></div>`).join("");
+ document.getElementById("healthChecks").innerHTML=[
+  ["Firebase",firebase.apps.length?"Connected":"Not initialized"],["Survey data",responses.length+" responses loaded"],["Issues",issues.length+" operational records"],["Projects",projects.length+" project records"],["Visits",visits.length+" field visits"],["Follow-ups",followups.length+" records"],["Offline queue",navigator.onLine?"Ready to sync":"Offline mode"]
+ ].map(x=>`<div class="area"><div><strong>${esc(x[0])}</strong></div><span class="pill">${esc(x[1])}</span></div>`).join("");
+}
+function searchLocation(){
+ const q=document.getElementById("globalSearch").value.trim().toLowerCase();if(!q)return;
+ const match=responses.find(r=>(`${r.ward||""} ${r.constituency||""}`).toLowerCase().includes(q));
+ if(match?.ward){openLocation(match.ward);return}
+ const op=issues.find(i=>`${i.location||""} ${i.title||""}`.toLowerCase().includes(q));
+ if(op?.location){openLocation(op.location);return}
+ toast("No matching location found in the current data.");
+}
+function showView(name,btn){
+ document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));const target=document.getElementById("view-"+name);if(target)target.classList.add("active");
+ document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");
+ const titles={
+ dashboard:["Dashboard","What is happening on the ground right now?"],locations:["Locations","Search community intelligence by place."],
+ location:["Location Intelligence","Briefing for the selected community location."],issues:["Issues","Track what needs attention and what has been resolved."],
+ projects:["Projects","Monitor proposed, ongoing and completed projects."],visits:["Visits","Capture field intelligence and follow-up actions."],
+ followups:["Follow-ups","Track commitments and unresolved actions."],priorities:["Priority Queue","Identify service-delivery issues requiring field attention."],
+ invitations:["Invitation Tracker","Wards asking for a visit, cross-checked against recorded visits."],
+ map:["Map","View research coverage and prepare geographic intelligence."],reports:["Reports","Generate concise operational briefs."],
+ research:["Survey Analytics","The research layer behind the operational platform."],admin:["Administration","Access, architecture and operational health."]
+ };
+ document.getElementById("pageTitle").textContent=titles[name]?.[0]||name;document.getElementById("pageSub").textContent=titles[name]?.[1]||"";
+ document.getElementById("sidebar").classList.remove("open");
+}
+function toggleMenu(){document.getElementById("sidebar").classList.toggle("open")}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function escAttr(s){return esc(s)}
+
+/* Event delegation for dynamically-rendered action buttons (avoids injecting
+   untrusted data into inline onclick="" strings, which was an XSS risk). */
+document.addEventListener("click",e=>{
+ const openBtn=e.target.closest("[data-open-location]");
+ if(openBtn){openLocation(openBtn.getAttribute("data-open-location"));return}
+ const toggleBtn=e.target.closest("[data-toggle-issue]");
+ if(toggleBtn){updateIssueStatus(toggleBtn.getAttribute("data-toggle-issue"),toggleBtn.getAttribute("data-next-status"));return}
+ const completeBtn=e.target.closest("[data-complete-followup]");
+ if(completeBtn){completeFollowup(completeBtn.getAttribute("data-complete-followup"));return}
+ const prefillBtn=e.target.closest("[data-prefill-issue-location]");
+ if(prefillBtn){prefillIssue(prefillBtn.getAttribute("data-prefill-issue-location"),prefillBtn.getAttribute("data-prefill-issue-theme"));return}
+ const prefillVisitBtn=e.target.closest("[data-prefill-visit-location]");
+ if(prefillVisitBtn){prefillVisit(prefillVisitBtn.getAttribute("data-prefill-visit-location"));return}
+});
+
+/* Allow Enter key to submit the email/password auth form */
+document.getElementById("authForm").addEventListener("keydown",e=>{
+ if(e.key==="Enter"){e.preventDefault();handleAuthSubmit();}
+});
+</script>
+<div class="toast" id="toast"></div>
+
+<script>
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+ navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
+ const CACHE_NAME='community-intelligence-shell-v1';
+ self.addEventListener('install',e=>{
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.add(self.location.href.replace('sw.js',''))).catch(()=>{}));
+ });
+ self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+ self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(
+   fetch(e.request).then(res=>{
+    const copy=res.clone();
+    caches.open(CACHE_NAME).then(cache=>cache.put(e.request,copy)).catch(()=>{});
+    return res;
+   }).catch(()=>caches.match(e.request))
+  );
+ });
+ `],{type:"text/javascript"}))).catch(()=>{});
+}
+</script>
+</body>
+</html>
