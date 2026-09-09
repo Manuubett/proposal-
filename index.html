@@ -807,22 +807,27 @@ function nearestWard(lat,lng){
  });
  return best;
 }
-function detectLocation(context){
+function isMedianApp(){return typeof median!=="undefined"}
+async function detectLocation(context){
  if(!navigator.geolocation){toast("Geolocation is not supported by this browser.");return}
  const noticeEl=context!=="dashboard"?document.getElementById("geoNotice"):null;
- if(noticeEl){noticeEl.style.display="block";noticeEl.textContent="Detecting your location…";}
- else toast("Detecting your location…");
+ const setMsg=(msg)=>{if(noticeEl){noticeEl.style.display="block";noticeEl.textContent=msg;}else toast(msg);};
+ setMsg("Detecting your location…");
+ /* On Android inside the Median app, navigator.geolocation won't trigger the
+    native permission dialog on its own — we must explicitly prompt via the
+    Median JavaScript Bridge first. This is a no-op if already granted. */
+ if(isMedianApp()&&median.android&&median.android.geoLocation){
+  try{await median.android.geoLocation.promptLocationServices();}catch(e){}
+ }
  navigator.geolocation.getCurrentPosition(pos=>{
   const{latitude:lat,longitude:lng}=pos.coords;
   if(!withinEmbuBounds(lat,lng)){
-   const msg="Your current location doesn't appear to be within Embu County. Please enter the ward manually.";
-   if(noticeEl){noticeEl.textContent="⚠️ "+msg;}else toast(msg);
+   setMsg("Your current location doesn't appear to be within Embu County. Please enter the ward manually.");
    return;
   }
   const match=nearestWard(lat,lng);
   if(!match){
-   const msg="Within Embu County, but no GPS-tagged survey responses are available yet to match a ward. Please enter it manually.";
-   if(noticeEl){noticeEl.textContent="⚠️ "+msg;}else toast(msg);
+   setMsg("Within Embu County, but no GPS-tagged survey responses are available yet to match a ward. Please enter it manually.");
    return;
   }
   const confidence=match.distanceKm<3?"high confidence":match.distanceKm<10?"moderate confidence":"low confidence — please verify";
@@ -834,10 +839,26 @@ function detectLocation(context){
    if(noticeEl){noticeEl.textContent=msg;}
   }
  },err=>{
-  const msg=err.code===1?"Location permission denied. Please allow location access, or enter the ward manually.":"Could not determine your location. Please enter the ward manually.";
-  if(noticeEl){noticeEl.textContent="⚠️ "+msg;}else toast(msg);
+  if(err.code===1){
+   if(isMedianApp()){
+    if(noticeEl){
+     noticeEl.style.display="block";
+     noticeEl.innerHTML='⚠️ Location permission denied. <a style="cursor:pointer;text-decoration:underline;color:var(--blue)" onclick="median.open.appSettings()">Open app settings</a> to allow it, or enter the ward manually.';
+    }else{
+     toast("Location permission denied. Open the app's Settings to allow it.");
+    }
+   }else{
+    setMsg("Location permission denied. Please allow location access, or enter the ward manually.");
+   }
+  }else{
+   setMsg("Could not determine your location. Please enter the ward manually.");
+  }
  },{enableHighAccuracy:true,timeout:10000});
 }
+/* iOS inside Median: location permission is requested automatically at
+   runtime, but Median needs the page to wait until its native layer signals
+   readiness before calling navigator.geolocation, to avoid a double prompt. */
+window.median_geolocation_ready=function(){ /* iOS native layer is ready; no autorun needed since our detectLocation() is only called from explicit user taps (buttons), not on page load. */ };
 function populateWards(){
  const wards=[...new Set(responses.map(r=>r.ward).filter(Boolean))].sort();
  const opts='<option value="">All wards</option>'+wards.map(w=>`<option>${esc(w)}</option>`).join("");
