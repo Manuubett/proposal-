@@ -156,6 +156,10 @@ button{cursor:pointer}
   <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleMenu(false)"></div>
   <aside class="sidebar" id="sidebar">
     <div class="brand"><div class="brand-icon">CI</div><div><strong>Community Intelligence</strong><small>Field intelligence platform</small></div></div>
+    <div style="display:flex;gap:8px;padding:0 10px 16px">
+      <button class="btn" style="flex:1;background:#1c3f28;border-color:#2b5b3a;color:#fff" onclick="loadData()">↻ Refresh</button>
+      <button class="btn gold" style="flex:1" onclick="showView('visits')">+ Visit</button>
+    </div>
     <div class="nav-label">Workspace</div>
     <div class="nav">
       <button class="active" onclick="showView('dashboard',this)"><span>⌂</span>Dashboard</button>
@@ -176,7 +180,10 @@ button{cursor:pointer}
     </div>
     <div class="sidebar-bottom">
       <div class="user"><img class="avatar" id="userAvatar"><div><strong id="userName">User</strong><br><span id="syncText">Connecting…</span></div></div>
-      <div style="margin-top:10px"><a onclick="offerLinkPassword()" id="accountPanelText" style="color:#b8c8bd;font-size:11px;cursor:pointer;text-decoration:underline">Update password</a></div>
+      <div style="margin-top:10px;display:flex;justify-content:space-between;gap:10px">
+        <a onclick="offerLinkPassword()" id="accountPanelText" style="color:#b8c8bd;font-size:11px;cursor:pointer;text-decoration:underline">Update password</a>
+        <a onclick="signOut()" style="color:#e8a5a5;font-size:11px;cursor:pointer;text-decoration:underline">Sign out</a>
+      </div>
     </div>
   </aside>
 
@@ -198,7 +205,11 @@ button{cursor:pointer}
 
       <div class="view active" id="view-dashboard">
         <div class="search-hero">
-          <h1 id="greetingText">Good day.</h1>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:2px">
+            <img id="greetingAvatar" style="width:52px;height:52px;border-radius:50%;object-fit:cover;background:#ffffff30;border:2px solid #ffffff40;display:none" alt="">
+            <div id="greetingInitial" style="width:52px;height:52px;border-radius:50%;background:var(--gold);color:var(--ink);display:none;align-items:center;justify-content:center;font-family:Fraunces;font-size:20px;font-weight:700;flex-shrink:0"></div>
+            <h1 id="greetingText" style="margin:0">Good day.</h1>
+          </div>
           <p id="greetingSub">Where are you going today? Search a ward, constituency or community location to see reported issues, feedback, projects and follow-ups.</p>
           <div class="searchbox"><input id="globalSearch" placeholder="Try: Muminji, Mbeere North, water, roads…" onkeydown="if(event.key==='Enter')searchLocation()"><button onclick="searchLocation()">Search</button></div>
           <button class="btn" style="margin-top:10px;background:transparent;border-color:#ffffff40;color:#fff" onclick="detectLocation('dashboard')">📍 Detect my current ward</button>
@@ -710,6 +721,13 @@ function firstName(){
 function renderGreeting(){
  const t=document.getElementById("greetingText");if(!t)return;
  t.textContent=`${greetingPhrase()}, ${firstName()||"there"}.`;
+ const u=auth.currentUser,imgEl=document.getElementById("greetingAvatar"),initEl=document.getElementById("greetingInitial");
+ if(u&&u.photoURL){
+  imgEl.src=u.photoURL;imgEl.style.display="block";initEl.style.display="none";
+ }else{
+  imgEl.style.display="none";initEl.style.display="flex";
+  initEl.textContent=(firstName()||"?").charAt(0).toUpperCase();
+ }
 }
 function setNetwork(){
  const online=navigator.onLine;document.getElementById("networkStatus").textContent=online?"● Online":"● Offline";
